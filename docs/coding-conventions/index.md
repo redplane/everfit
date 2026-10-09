@@ -27,7 +27,7 @@ matching folder below. Each folder scopes its conventions to a specific technolo
 | ----------------------------- | --------------------------- | ----------------------------------------------------------------------------- |
 | **Language — TypeScript**     | [`typescript/`](./typescript/) | General TypeScript/language rules — naming, access modifiers, enums, file organization. See [`typescript/generic.md`](./typescript/generic.md). |
 | **Framework — NestJS**        | [`nestjs/`](./nestjs/)      | NestJS modules, controllers, DTOs, services, validation, request flow, time context. |
-| **Persistence — TypeORM**     | [`typeorm.md`](./typeorm.md) | Entities, naming, and migrations for TypeORM + PostgreSQL.                     |
+| **Persistence — TypeORM**     | [`orms/`](./orms/)          | Entities, naming, and migrations for TypeORM + PostgreSQL. See [`orms/typeorm.md`](./orms/typeorm.md). |
 | **Cross-cutting**             | [`best-practices/`](./best-practices/) | Language/framework-agnostic rules that apply to all code.             |
 
 ## Contents
@@ -44,9 +44,9 @@ matching folder below. Each folder scopes its conventions to a specific technolo
 - [`service.md`](./nestjs/service.md) — interface-first services, injection tokens, service modules.
 - [`time-context.md`](./nestjs/time-context.md) — time context module, token, and usage.
 
-### `typeorm.md` — persistence
+### `orms/` — persistence
 
-- [`typeorm.md`](./typeorm.md) — entities, naming, migrations.
+- [`typeorm.md`](./orms/typeorm.md) — entities, naming, migrations.
 
 ### `best-practices/` — cross-cutting (language/framework-agnostic)
 

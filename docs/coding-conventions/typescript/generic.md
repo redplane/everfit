@@ -31,7 +31,7 @@ idiomatic TypeScript / NestJS equivalents.
     `workout-entry.entity.ts`, `create-workout.dto.ts`, `workouts.controller.ts`,
     `workouts.service.ts`, `log-workout.command.ts`.
 - **No data annotations for persistence shape on plain domain objects** — keep ORM mapping
-  in dedicated entity/schema definitions (see `../typeorm.md`), not scattered across DTOs.
+  in dedicated entity/schema definitions (see `../orms/typeorm.md`), not scattered across DTOs.
 - **UUID:** always generate UUID v7 (e.g. `uuidv7()` from the `uuidv7` package). **DO NOT**
   use `uuid.v4()` / `Math.random()` for identifiers. v7 is time-ordered, which keeps primary
   keys index-friendly — the same intent as `Guid.CreateVersion7()` in the reference.

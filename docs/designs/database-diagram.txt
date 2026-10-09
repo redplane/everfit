@@ -1,0 +1,17 @@
+// Everfit Workout Logging API — database diagram (dbdiagram.io DBML syntax)
+//
+// Single source of truth for the physical schema, mirroring architecture.md's ER diagram and the
+// TypeORM entities + migrations. It grows one table per task as features land; every table here
+// must match a shipped entity and migration.
+//
+// Shipped so far:
+//   - Task 2 (F2): users
+
+Table users {
+  id uuid [pk, note: 'UUID v7, pk_users; supplied by the application']
+  name varchar(200) [not null]
+  created_time timestamptz [not null]
+  updated_time timestamptz [null]
+
+  Note: 'User master data (F2). Minimal record for existence validation and read-only discovery.'
+}

@@ -95,4 +95,4 @@ var service = new InvoiceService(timeContext);
 
 - This repository is NestJS / TypeScript; the same rule applies with an injected
   `DateTimeContext` / `getUtcNowAsync()` instead of `new Date()` / `Date.now()` — see
-  `../nestjs/api.md` §3.5 and `../typescript/generic.md`.
+  `../typescript/frameworks/nestjs/api.md` §3.5 and `../typescript/generic.md`.

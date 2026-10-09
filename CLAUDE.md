@@ -42,13 +42,22 @@ api/                                 # Nx workspace root
 ├── docs/
 │   ├── requirement.md               # assignment spec
 │   └── coding-conventions/          # conventions — MUST be followed
+│       ├── index.md                 # conventions index + folder-naming rule
 │       ├── typescript/
-│       │   └── generic.md           # TypeScript language conventions
-│       ├── nestjs/
-│       │   ├── api.md               # NestJS modules/controllers/DTOs/errors
-│       │   ├── request-validation.md # Joi request validation
-│       │   └── request-flow.md      # controller request flow / stage order
-│       └── typeorm.md               # persistence: entities, naming, migrations
+│       │   ├── generic.md           # TypeScript language conventions
+│       │   └── frameworks/
+│       │       └── nestjs/
+│       │           ├── api.md               # NestJS modules/controllers/DTOs/errors
+│       │           ├── request-validation.md # Joi request validation
+│       │           ├── request-flow.md      # controller request flow / stage order
+│       │           ├── service.md           # interface-first services, injection tokens
+│       │           └── time-context.md      # time context module, token, usage
+│       ├── orms/
+│       │   └── typeorm.md           # persistence: entities, naming, migrations
+│       └── best-practices/          # language/framework-agnostic rules
+│           ├── api-documentation.md # OpenAPI + Scalar, grouping, titles, roles
+│           ├── handle-condition.md  # guard clauses, switch/case
+│           └── time-with-di.md      # inject a time context, no static time
 ├── nx.json
 └── package.json
 ```

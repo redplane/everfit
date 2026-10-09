@@ -1,7 +1,7 @@
 # I. Overview
 
 This document specifies how the **time context** is wired in this NestJS project. It builds on the
-framework-agnostic rule in **[../best-practices/time-with-di.md](../best-practices/time-with-di.md)**:
+framework-agnostic rule in **[../../../best-practices/time-with-di.md](../../../best-practices/time-with-di.md)**:
 never read the current time from `new Date()` / `Date.now()` directly — obtain it from an injected
 time context so it stays deterministic (and fakeable) in unit tests.
 

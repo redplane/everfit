@@ -14,7 +14,8 @@ central exception filter instead of per-handler `try/catch` — but the .NET CQR
 - Configuration layering (NestJS `ConfigModule`): load `.env`, then `.env.${NODE_ENV}`, and in
   `development` load `.env.local` (git-ignored secrets) **last** — the equivalent of the
   reference's `secret.json` registered after `appsettings`.
-- Enable OpenAPI/Swagger **only** when `NODE_ENV === 'development'`.
+- Enable the OpenAPI document + **Scalar** UI based on the `API_DOCUMENT__ENABLED` environment
+  variable (**not** hardcoded to `NODE_ENV`) — see §3.7.
 - Register the global exception filter (see §3.6) in `main.ts` / the root module.
 
 ## 2. Module structure
@@ -165,6 +166,24 @@ central exception filter instead of per-handler `try/catch` — but the .NET CQR
   reference uses status `666` for generic business errors; use a documented, consistent
   code/shape here).
 - When creating data whose dependency must exist, throw a not-found exception if it is missing.
+
+### 3.7. API documentation
+
+- Follow the cross-cutting rule in
+  **[../../../best-practices/api-documentation.md](../../../best-practices/api-documentation.md)**: document
+  the API with **OpenAPI** rendered through **Scalar**.
+- **Gate it by environment variable, not by `NODE_ENV`.** Read `API_DOCUMENT__ENABLED` via
+  `ConfigModule` (e.g. map it to `apiDocument.enabled`) and only mount the OpenAPI document +
+  Scalar UI when it is `true`. Default to disabled.
+- Build the OpenAPI document with the NestJS `@nestjs/swagger` `SwaggerModule` (document builder +
+  decorators), then mount **Scalar** as the viewer using the NestJS integration
+  **`@scalar/nestjs-api-reference`** — do not ship the default Swagger UI.
+- **Group endpoints by domain** with `@ApiTags('<Domain>')` — plural-noun groups such as `Users`,
+  `Workouts`, `Blog posts`.
+- Give every endpoint a **meaningful title** via `@ApiOperation({ summary: '...' })` —
+  e.g. `Get user by id`, `Create a new user`. Do not rely on the generated operation id.
+- For endpoints behind a permission check, state the allowed role(s) in the operation description
+  (and the relevant `@ApiBearerAuth()` / security scheme), e.g. "Accessible by: `Admin`, `Owner`".
 
 ## 4. Extensibility notes (from `docs/requirement.md`)
 

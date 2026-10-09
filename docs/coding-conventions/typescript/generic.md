@@ -167,4 +167,4 @@ export enum UserStatuses {
   that participates in DI.
 - An interface that describes a service contract is named `I<ServiceName>` only when a
   separate token is needed; otherwise the concrete `class` is the injection token
-  (idiomatic NestJS). See `../nestjs/api.md` → Services.
+  (idiomatic NestJS). See `./frameworks/nestjs/api.md` → Services.

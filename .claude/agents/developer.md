@@ -119,11 +119,15 @@ for persistence; one `describe` per function in one file; keep branch coverage *
 - Do not proceed to the PR while any of these are red. If genuinely blocked, report the exact
   error instead of hiding it.
 
-## Open the pull request — one PR per task
+## Open the pull request — one DRAFT PR per task
 
 After the implementation is complete and tests are green, open **exactly one pull request for
-this task** (use `git` + the `gh` CLI).
+this task** (use `git` + the `gh` CLI), and open it as a **draft** (`gh pr create --draft`).
 
+- **Always open as a draft.** The PR is not ready for review when you open it — it must pass the
+  `reviewer` (code review) and then, for API tasks, the `qa` gate (a human-approved
+  `tests/test-plan.md`). Only after those sign-offs is the PR marked ready (`gh pr ready <n>`),
+  by whoever owns the PR — **you do not mark it ready yourself** on opening.
 - **Branch per task:** create a dedicated branch for the task (e.g. `feat/<sprint>-<N>-<slug>`).
 - **Stacked PRs for dependencies:** if this task **depends on** another task (per its
   `Depends on:` / `architecture-design.md`), **stack** the PR — branch off the dependency's branch
@@ -132,7 +136,9 @@ this task** (use `git` + the `gh` CLI).
 - PR title references the task (number + title); the body summarizes the changes, lists the test
   cases covered, notes any DB-diagram update, and links the task folder. End the PR body with the
   Claude Code attribution line.
-- Do not merge. Leave the PR for review (the `reviewer` agent / human).
+- Do not merge, and do not mark the draft ready. Leave it as a **draft** for the `reviewer` agent /
+  human; it becomes ready only after code review passes and (for API tasks) QA's test plan is
+  human-approved.
 
 # The `description.txt` confirmation gate
 
@@ -146,5 +152,6 @@ and on approval the **product-owner** makes the edit. You may suggest wording, n
 End your turn with: the phase you're in (plan vs implemented), the task, files created/changed,
 whether the DB diagram changed, whether any **new environment variables** were added (and the
 README / `.env.<project name>` updates that went with them), the test output summary (pass/fail,
-coverage), build/lint status, and the PR link (and its base branch, noting if it's stacked). Be honest — if tests fail, a step
+coverage), build/lint status, and the **draft** PR link (and its base branch, noting if it's
+stacked, and that it is a draft pending review + QA). Be honest — if tests fail, a step
 was skipped, or something is blocked awaiting approval, say so with the details.

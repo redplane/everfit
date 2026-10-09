@@ -83,6 +83,8 @@ VERDICT: PASS | CHANGES REQUESTED
 
 Summary: <1–2 sentences>
 
+Next: <on PASS — "handoff to qa" | on CHANGES REQUESTED — "back to developer">
+
 Blocking findings (must fix):
 - [file:line] <what's wrong> — <which rule/criterion> — <suggested fix>
 
@@ -95,6 +97,21 @@ Hook & test verification:
 - branch coverage: <n>%  (floor 80%)
 - uncovered branches: <list or "none">
 ```
+
+# Handoff to QA
+
+A **PASS is not the end of the line** — it is the handoff to external testing. When your verdict is
+**PASS**, hand the task to the **`qa`** agent as the external-testing gate (name the task folder so
+QA has its `description.txt` + `architecture-design.md`). QA decides whether the task is externally
+testable:
+
+- If the task has **no API changes** (internal refactor, config, schema-only, or any non-API
+  feature), QA is a no-op and the task is done once your PASS stands.
+- If the task **changes the API**, QA writes a `tests/test-plan.md` of external scenarios that a
+  human must approve; the task's **draft PR may be marked ready only after that approval**.
+
+On **CHANGES REQUESTED**, do **not** hand off to QA — the task goes back to the developer first.
+State the handoff (or that it's blocked) explicitly in your report.
 
 # Rules
 

@@ -51,9 +51,20 @@ The sprint folder is the **Monday → Friday week** that contains the sprint dat
   it would use, and ask them to confirm or give a corrected date before continuing. Do not silently
   create a backdated sprint.
 
+- **Existing sprint folder → append, don't recreate:** check whether the resolved
+  `plans/<Monday>_<Friday>/` folder **already exists**. If it does, this is **not** a fresh sprint —
+  the new requirement's tasks are **appended** to the existing sprint:
+  - Keep the existing `goal.md` and all existing task folders as-is. Do **not** overwrite, renumber,
+    or delete them.
+  - New task folders continue the existing numbering (if the folder already holds
+    `1. …`, `2. …`, the first new task is `3. …`).
+  - Tell the human the folder already exists, list the task folders already in it, and confirm that
+    the new requirement will be **added** to this sprint (not replace it) before continuing.
+  - Carry this same existing folder through every later stage.
+
 Confirm the exact sprint folder with the human, then let the product-owner create it in the next
-step (the product-owner creates the folder if missing). Carry this sprint folder through every
-later stage so all agents work against the same one.
+step (the product-owner creates the folder if missing, or appends to it if it already exists).
+Carry this sprint folder through every later stage so all agents work against the same one.
 
 ## 3. Product-owner — analyze & separate tasks
 
@@ -63,10 +74,14 @@ hard guarantee: **every open question is answered by a human** before anything i
 
 Through that skill, drive the product-owner to:
 
-1. Write `goal.md` (goal, scope, open questions) in the sprint folder.
+1. Write `goal.md` (goal, scope, open questions) in the sprint folder. **If the sprint folder
+   already existed (step 2 append case),** do not overwrite the existing `goal.md` — extend it with
+   the new requirement's goal/scope/open questions, keeping the prior content intact.
 2. Get **every** open question answered by a human and the goal **approved**.
 3. Only then **separate the features into task folders** — `plans/<sprint>/<N>. <Title>/` each with
-   a product-owner-owned `description.txt` and any `Depends on:` lines.
+   a product-owner-owned `description.txt` and any `Depends on:` lines. **In the append case, new
+   task folders continue the existing numbering** and leave the sprint's existing task folders
+   untouched; `Depends on:` lines may reference existing tasks in the same sprint.
 
 **Gate:** do not move to the architect until the human has confirmed the goal **and** the task
 breakdown (task folders + descriptions + dependency order). The architect designs against a frozen

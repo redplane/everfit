@@ -1,0 +1,2 @@
+echo "pre-push: building all projects..."
+pnpm nx run-many -t build

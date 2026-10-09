@@ -1,0 +1,2 @@
+echo "pre-commit: linting all projects..."
+pnpm nx run-many -t lint

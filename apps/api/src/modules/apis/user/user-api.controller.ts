@@ -12,7 +12,9 @@ import { GetUserParamDto } from './dto/get-user-param.dto';
 import { getUserParamJoiSchema } from './dto/get-user-param.joi-schema';
 
 @ApiTags('Users')
-@Controller({ path: 'api/users' })
+// The global prefix `api` is applied in main.ts (setGlobalPrefix), so the controller path must
+// NOT repeat it — this resolves to `/api/users`, not `/api/api/users`.
+@Controller({ path: 'users' })
 export class UserApiController {
   //#region Constructor
   public constructor(

@@ -19,13 +19,19 @@ central exception filter instead of per-handler `try/catch` — but the .NET CQR
 
 ## 2. Module structure
 
-- Features are **not** split by CQRS. Each feature is a **NestJS module** placed under
-  `src/modules/<module-name>/` (module name in `kebab-case`, e.g. `src/modules/user/`,
-  `src/modules/workout/`).
-- A module folder must contain:
+- Features are **not** split by CQRS. Each feature is a **NestJS module**. Modules are split by
+  responsibility into two locations:
+  - **API modules** — modules that expose HTTP endpoints — are placed under
+    `src/modules/apis/<module-name>/` (module name in `kebab-case`, e.g.
+    `src/modules/apis/user/`, `src/modules/apis/workout/`).
+  - **Core modules** — modules that contain shared logic **re-used by other modules** (services,
+    providers, abstractions, cross-cutting concerns) — are placed under
+    `src/modules/cores/<module-name>/` (e.g. `src/modules/cores/date-time/`,
+    `src/modules/cores/joi/`).
+- An **API module** folder must contain:
 
   ```
-  src/modules/<module-name>/
+  src/modules/apis/<module-name>/
     ├── <module-name>-api.module.ts          # module registration (API module)
     ├── <module-name>-api.controller.ts       # controller that serves /api endpoints
     ├── <module-name>.controller.ts           # (optional) controller that serves static resources
@@ -51,10 +57,14 @@ central exception filter instead of per-handler `try/catch` — but the .NET CQR
 
 ### 2.1. Modules
 
-- A module that registers API endpoints is named `<module-name>-api.module.ts`, class
-  `<Name>ApiModule` (e.g. `user-api.module.ts` → `UserApiModule`).
+- A module that registers API endpoints lives under `src/modules/apis/<module-name>/`, is named
+  `<module-name>-api.module.ts`, class `<Name>ApiModule` (e.g. `user-api.module.ts` →
+  `UserApiModule`).
 - The module declares its controllers and providers (services). It imports `TypeOrmModule`
   feature registration for its entities.
+- A module whose providers are **re-used by other modules** lives under
+  `src/modules/cores/<module-name>/`; it exports the providers (services, abstractions) that
+  consuming modules import. Core modules do not register `/api` controllers.
 
 ## 3. API coding
 

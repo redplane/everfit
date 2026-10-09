@@ -47,6 +47,60 @@ Stop and remove all data:
 docker compose -p everfit down -v
 ```
 
+## Environment Variables
+
+The `api` project reads its configuration from environment variables via a layered
+`@nestjs/config` setup (`.env.api.local` overrides `.env.api`). All variables are **validated at
+boot** — required variables with no default will fail startup if missing.
+
+A committed sample lives at **`.env.api.example`**. Copy it to the git-ignored `.env.api` and fill
+in real values for local development:
+
+```sh
+cp .env.api.example .env.api
+```
+
+| Variable                | Required | Default       | Purpose                                     | Example     |
+| ----------------------- | -------- | ------------- | ------------------------------------------- | ----------- |
+| `NODE_ENV`              | no       | `development` | runtime environment / config layering       | `development` |
+| `PORT`                  | no       | `3000`        | HTTP port the API listens on                | `3000`      |
+| `DATABASE__HOST`        | yes      | —             | PostgreSQL host                             | `localhost` |
+| `DATABASE__PORT`        | no       | `5432`        | PostgreSQL port                             | `5432`      |
+| `DATABASE__USERNAME`    | yes      | —             | PostgreSQL user                             | `postgres`  |
+| `DATABASE__PASSWORD`    | yes      | —             | PostgreSQL password                         | `postgres`  |
+| `DATABASE__NAME`        | yes      | —             | PostgreSQL database name                    | `everfit`   |
+| `API_DOCUMENT__ENABLED` | no       | `false`       | mount OpenAPI + Scalar at `/api/docs` when `true` | `false` |
+
+> **Note:** `.env.api` is git-ignored (never commit real secrets). Only `.env.api.example` — with
+> placeholder values — is committed.
+
+## API documentation
+
+Interactive API reference (OpenAPI rendered with [Scalar](https://scalar.com)) is **gated** and
+**off by default**. Set `API_DOCUMENT__ENABLED=true` and the reference is served at
+`http://localhost:<PORT>/api/docs`.
+
+## Database migrations
+
+Schema changes are applied through TypeORM migrations (never `synchronize`). The CLI data source is
+`apps/api/src/data-source.ts`; migrations live in `apps/api/src/migrations/`:
+
+```sh
+# generate a migration from the current entity diff
+pnpm migration:generate ./apps/api/src/migrations/<ChangeName>
+# apply / revert
+pnpm migration:run
+pnpm migration:revert
+```
+
+> These scripts run the TypeScript-aware TypeORM CLI (`typeorm-ts-node-commonjs`) against
+> `apps/api/src/data-source.ts`, which loads env from `.env.api`.
+
+## Time & timezone
+
+All instants are stored in UTC (`timestamptz`). Business code obtains the current time from an
+injected `TimeContext` (never `new Date()` directly), so time is deterministic in tests.
+
 ## Run tasks
 
 To run the dev server for your app, use:

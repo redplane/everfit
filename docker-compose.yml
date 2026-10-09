@@ -27,5 +27,27 @@ services:
       timeout: 5s
       retries: 5
 
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: everfit-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      # The api talks to the postgres service over the compose network.
+      DATABASE__HOST: postgres
+      DATABASE__PORT: 5432
+      DATABASE__USERNAME: postgres
+      DATABASE__PASSWORD: ciqOhZcasFeEaPAMVtcajRYzdyY9WiSe
+      DATABASE__NAME: everfit
+      API_DOCUMENT__ENABLED: 'false'
+    ports:
+      - '3000:3000'
+
 volumes:
   postgres-data:

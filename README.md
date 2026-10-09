@@ -6,6 +6,47 @@
 
 [Learn more about this workspace setup and its capabilities](https://nx.dev/nx-api/nest?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
 
+## Local database (Docker Compose)
+
+A `docker-compose.yml` is provided to run a local PostgreSQL database for the API.
+
+Start the database in the background (project name `everfit`):
+
+```sh
+docker compose -p everfit up -d
+```
+
+This starts a `postgres:16-alpine` container (`everfit-postgres`) with:
+
+| Setting  | Value                      |
+| -------- | -------------------------- |
+| Host     | `localhost`                |
+| Port     | `5432`                     |
+| Database | `everfit`                  |
+| Username | `postgres`                 |
+| Password | set in `docker-compose.yml`|
+
+Data is persisted in the `postgres-data` named volume, so it survives restarts.
+
+Check status and view logs:
+
+```sh
+docker compose -p everfit ps
+docker compose -p everfit logs -f postgres
+```
+
+Stop the database (keep data):
+
+```sh
+docker compose -p everfit down
+```
+
+Stop and remove all data:
+
+```sh
+docker compose -p everfit down -v
+```
+
 ## Run tasks
 
 To run the dev server for your app, use:

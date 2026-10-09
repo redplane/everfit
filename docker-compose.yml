@@ -1,0 +1,31 @@
+# Docker Compose for local development infrastructure.
+# Brings up a PostgreSQL database for the Everfit Workout Logging API.
+#
+#   docker compose -p everfit up -d        # start in the background
+#   docker compose -p everfit down         # stop and remove containers
+#   docker compose -p everfit down -v      # also remove the data volume
+#
+# Connection settings match docs/guidelines/tools/database/postgres/.env.example
+# (DB_NAME=everfit, DB_USERNAME=postgres, DB_PORT=5432).
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: everfit-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ciqOhZcasFeEaPAMVtcajRYzdyY9WiSe
+      POSTGRES_DB: everfit
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d everfit']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres-data:

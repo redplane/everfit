@@ -1,0 +1,33 @@
+TASK 1 — Platform foundation (error handling, validation, time context, config, API docs)
+
+Feature IDs: F1
+Depends on: none (foundational — everything else builds on this)
+
+User story
+  As an engineer, I want a consistent error-handling, request-validation, time, and
+  configuration foundation so that every endpoint behaves predictably and failures are
+  structured and meaningful.
+
+Acceptance criteria
+  - A request that fails validation returns a structured 400 error body with a stable
+    application error code and a meaningful message (Joi-based validation at the boundary).
+  - Any unhandled or domain error is translated by a global exception filter into a
+    structured error body with a stable application error code — never a raw stack trace.
+  - Business code obtains the current time from an injected time context (UTC) rather than
+    new Date() / Date.now(), so time is deterministic in tests.
+  - Configuration and secrets are read via layered config (no hardcoded secrets). API
+    documentation is gated by an environment variable and defaults to off.
+
+Edge cases
+  - Malformed JSON or wrong content type returns a structured 400, not a crash.
+  - An unknown route returns a consistent structured 404 shape.
+
+Out of scope / assumptions
+  - No authentication middleware.
+  - The concrete error-code catalogue, filter wiring, and module layout are the
+    architect's (HOW), not specified here.
+
+Notes
+  - This is the shared plumbing (errors, Joi validation, time-with-DI, config, OpenAPI/
+    Scalar docs) that tasks 2-9 depend on. Keep it minimal but complete enough that later
+    tasks do not re-invent cross-cutting concerns.

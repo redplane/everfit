@@ -23,7 +23,7 @@ For each applicable item, determine current state (✅ done / ❌ missing) with 
 
 - **pnpm as package manager** — Check for `pnpm-lock.yaml` (present) vs `package-lock.json` /
   `yarn.lock` (should be absent). Also check `packageManager` field in `package.json` and
-  `docs/coding-conventions/index.md` (pnpm is required). Confirm `pnpm` is available on PATH.
+  `docs/guidelines/index.md` (pnpm is required). Confirm `pnpm` is available on PATH.
 - **Husky installed** — Check `.husky/` directory exists and `husky` is in `devDependencies`.
 - **Git hooks wired** — Check `.husky/pre-commit` and `.husky/pre-push` exist and are wired
   (e.g. a `prepare` script running `husky` in `package.json`).

@@ -8,7 +8,7 @@ applies to the repository's technology stack.
 If the repository contains one or more **Node.js** projects, the following MUST be set up:
 
 - [ ] **pnpm** — use pnpm as the package manager (not `npm` or `yarn`). See
-      [`../coding-conventions/index.md`](../coding-conventions/index.md) for the package-management rule.
+      [`../guidelines/index.md`](../guidelines/index.md) for the package-management rule.
 - [ ] **Husky** — install and configure [Husky](https://typicode.github.io/husky/) to manage Git hooks.
 - [ ] **Git hooks** — wire the Git hooks through Husky (see commit and push rules below).
 - [ ] **Lint** — set up linting for every project so it can be run and enforced by the hooks.

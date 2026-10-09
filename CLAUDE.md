@@ -41,7 +41,7 @@ api/                                 # Nx workspace root
 │   └── api-e2e/                     # end-to-end tests for the api app
 ├── docs/
 │   ├── requirement.md               # assignment spec
-│   └── coding-conventions/          # conventions — MUST be followed
+│   └── guidelines/                  # conventions — MUST be followed
 │       ├── index.md                 # conventions index + folder-naming rule
 │       ├── typescript/
 │       │   ├── generic.md           # TypeScript language conventions
@@ -64,7 +64,7 @@ api/                                 # Nx workspace root
 
 ## Coding Conventions
 
-While generating code, the coding convention located at `docs/coding-conventions` **must be
+While generating code, the coding convention located at `docs/guidelines` **must be
 strictly followed**. These were adapted from a reference .NET convention set into their
 idiomatic NestJS / TypeScript equivalents: features are separated by **modules** under
 `src/modules/<module-name>/` (no CQRS), persistence via TypeORM + PostgreSQL, a global exception

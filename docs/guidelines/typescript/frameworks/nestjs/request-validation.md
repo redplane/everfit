@@ -224,7 +224,7 @@ export class ValidationExceptionFilter implements ExceptionFilter {
 }
 ```
 
-- Register `ValidationExceptionFilter` alongside the general business-exception filter in the
-  root module / `main.ts`. Validation errors therefore return `400` with
-  `{ code, issues: [{ message }] }`; other domain errors are handled by the `BusinessException`
-  filter described in `api.md` §3.6.
+- `ValidationExceptionFilter` is registered alongside the business and unhandled filters via
+  `APP_FILTER` — see **[error-handling.md](./error-handling.md)** §1 (this exception) and §4 (filter
+  registration + ordering). Validation errors return `400` with `{ code, issues: [{ message }] }`;
+  other domain errors are handled by the `BusinessException` filter (`api.md` §3.6).

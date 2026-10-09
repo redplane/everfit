@@ -13,6 +13,23 @@ If the repository contains one or more **Node.js** projects, the following MUST 
 - [ ] **Git hooks** — wire the Git hooks through Husky (see commit and push rules below).
 - [ ] **Lint** — set up linting for every project so it can be run and enforced by the hooks.
 
+## Exception handling
+
+For every **NestJS** project, global exception handling MUST be in place per
+[`../guidelines/typescript/frameworks/nestjs/error-handling.md`](../guidelines/typescript/frameworks/nestjs/error-handling.md):
+
+- [ ] **Request parameter validation** — a `ValidationException` + `ValidationExceptionFilter` maps
+      Joi validation failures to a stable `400 { code, issues: [{ message }] }`.
+- [ ] **Business logic validation** — a `BusinessException` base (extending `HttpException`, carrying a
+      stable `code`) with one subclass per domain error, mapped by `BusinessExceptionFilter` to
+      `{ code, message }` at the declared status.
+- [ ] **Unhandled exceptions** — a catch-all `@Catch()` `UnhandledExceptionFilter` logs full detail
+      server-side and returns a safe, generic `500 { code, message }` that never leaks internals
+      (message/stack).
+- [ ] **Filters registered via `APP_FILTER`** — all three filters are wired as `APP_FILTER` providers
+      (not `app.useGlobalFilters` in `main.ts`), with the catch-all registered first so the specific
+      filters take precedence.
+
 ## Docker
 
 For every buildable/deployable project, the following MUST be set up:

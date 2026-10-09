@@ -44,6 +44,7 @@ matching folder below. Each folder scopes its conventions to a specific technolo
 ### `typescript/frameworks/nestjs/` — NestJS framework
 
 - [`api.md`](./typescript/frameworks/nestjs/api.md) — modules, controllers, DTOs, errors.
+- [`error-handling.md`](./typescript/frameworks/nestjs/error-handling.md) — validation, business-logic, and unhandled exception handling + filters.
 - [`request-flow.md`](./typescript/frameworks/nestjs/request-flow.md) — controller request flow / stage order.
 - [`request-validation.md`](./typescript/frameworks/nestjs/request-validation.md) — Joi request validation.
 - [`service.md`](./typescript/frameworks/nestjs/service.md) — interface-first services, injection tokens, service modules.

@@ -162,10 +162,12 @@ central exception filter instead of per-handler `try/catch` — but the .NET CQR
 
 - Missing data → throw `<Entity>ByIdNotFoundException` / `<Entity>ByCodeNotFoundException`.
 - Other domain errors → an `<Name>Exception` extending `BusinessException`, surfaced by the
-  global exception filter as a structured error body with a stable application error code (the
-  reference uses status `666` for generic business errors; use a documented, consistent
-  code/shape here).
+  global exception filter as a structured error body with a stable application error code.
 - When creating data whose dependency must exist, throw a not-found exception if it is missing.
+- The full error-handling convention — request-validation exceptions, business-logic exceptions,
+  the unhandled catch-all filter, their response shapes, and how the filters are registered via
+  `APP_FILTER` — is documented in **[error-handling.md](./error-handling.md)**. Never `try/catch`
+  for control flow in controllers/services; throw a typed exception and let the filters translate it.
 
 ### 3.7. API documentation
 

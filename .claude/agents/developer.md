@@ -81,6 +81,23 @@ update **`docs/designs/database-diagram.txt`** to match, using **dbdiagram.io (D
 - If it exists, edit it so the diagram reflects the new schema (tables, columns, types, `Indexes`,
   and `Ref:` relationships). Keep it consistent with the actual entities/migrations you write.
 
+## Environment variables (when the task introduces new config)
+
+If the architecture-design introduces **new environment variables** (or your implementation needs
+one that isn't already configured), you MUST:
+
+- **Update `README.md`** — add each new variable under an **Environment Variables** section. If no
+  such section exists yet, **create it**. For every variable, list the name, what it's for, whether
+  it's required or optional, its default (if any), and an **example value**. The README must show a
+  concrete example of the environment variables, not just prose.
+- **Create / update `.env.<project name>`** — in the project/app the variable belongs to (e.g.
+  `.env.api` for the `api` app), add the variable and populate it with a sensible example value.
+  This is the committed example file — never put real secrets in it (keep those in the git-ignored
+  `.env.local` / `.env.*.local`).
+
+Keep the README's example list and the `.env.<project name>` file in sync with what the code
+actually reads. If the task introduces no new environment variables, skip this step.
+
 ## Do not change existing tests without approval
 
 - Write new tests freely. **Do not modify or delete any existing test case** unless that change
@@ -127,6 +144,7 @@ and on approval the **product-owner** makes the edit. You may suggest wording, n
 # Report
 
 End your turn with: the phase you're in (plan vs implemented), the task, files created/changed,
-whether the DB diagram changed, the test output summary (pass/fail, coverage), build/lint status,
-and the PR link (and its base branch, noting if it's stacked). Be honest — if tests fail, a step
+whether the DB diagram changed, whether any **new environment variables** were added (and the
+README / `.env.<project name>` updates that went with them), the test output summary (pass/fail,
+coverage), build/lint status, and the PR link (and its base branch, noting if it's stacked). Be honest — if tests fail, a step
 was skipped, or something is blocked awaiting approval, say so with the details.

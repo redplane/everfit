@@ -20,6 +20,11 @@ idiomatic TypeScript / NestJS equivalents.
 - **Naming**
   - `PascalCase` for classes, interfaces, enums (the type name), decorators, type aliases.
   - `camelCase` for methods, properties, variables, function parameters.
+  - **Member visibility prefix.** A **private** property or method name must be prefixed with
+    `__` (double underscore); a **protected** property or method name must be prefixed with `_`
+    (single underscore). `public` members take no prefix. For example: `private readonly __joiService`,
+    `private __recalculateAsync()`, `protected _cache`, `protected _onInitAsync()`,
+    `public readonly id`.
   - `SNAKE_UPPER_CASE` for **enum members / constant-group members**. For example:
     `UserStatuses.ACTIVE`, `WeightUnits.KILOGRAM`, `ItemStatuses.OUT_OF_STOCK`.
   - File names use `kebab-case` with a role suffix (NestJS style):
@@ -82,8 +87,32 @@ public constructor(id: string, createdTime: Date) {
 
 ## 2. Classes, interfaces, methods, properties
 
-- Methods that return a `Promise` must have `Async` in their name.
-  For example: `getUserAsync()`, `logWorkoutAsync()`.
+- A method that returns a `Promise` **or** an `Observable` must have the `Async` suffix in its
+  name. For example: `getUserAsync()`, `getAsync()`, `createAsync()`, `logWorkoutAsync()`.
+- **Do not repeat the entity name in a method name when the class already is about that entity.**
+  If a class is scoped to an entity (e.g. `User`, `UserService`), its methods must **not** restate
+  the entity — the class already provides that context. Use `getByIdAsync(...)` / `getById()` /
+  `createAsync(...)` / `deleteByIdAsync(id)`, **not** `getUserByIdAsync(...)` /
+  `deleteUserByIdAsync(...)`. For example, in `UserService`:
+
+```ts
+@Injectable()
+export class UserService implements IUserService {
+  //#region Methods
+  public getById(id: string): string {
+    // ...
+  }
+
+  public getByIdAsync(id: string): Promise<UserEntity> {
+    // ...
+  }
+
+  public deleteByIdAsync(id: string): Promise<void> {
+    // ...
+  }
+  //#endregion
+}
+```
 - **DO NOT** put business logic in a constructor. Constructors are for dependency injection
   only (NestJS injects providers through the constructor). Example:
 

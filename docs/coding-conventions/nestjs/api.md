@@ -124,9 +124,16 @@ central exception filter instead of per-handler `try/catch` — but the .NET CQR
 
 ### 3.5. Services
 
-- Controllers **never** touch the database or external systems directly — a service does.
-- A service is an `@Injectable()` class `<Entity>Service`. Expose an interface + token only when
-  multiple implementations are needed.
+- Controllers **never** interact with the database (or external systems) directly — **all** data
+  access goes **through a service**. A controller must query/persist data only by calling an
+  injected service; direct repository/`DataSource`/entity-manager use in a controller is
+  forbidden.
+- Services are defined interface-first and wired through an injection token. The full service
+  layout — the `I<Name>Service` interface, the `<Name>Service` implementation, the
+  `<service-name>-injection-tokens.ts` enum, and the `<service-name>.module.ts` module — is
+  documented in **[service.md](./service.md)**.
+- A service is an `@Injectable()` class `<Entity>Service` implementing its `I<Entity>Service`
+  contract, provided under its injection token (see **[service.md](./service.md)**).
 - Standard data-access methods: `getByIdAsync(id)`, `createAsync(options)`,
   `updateByIdAsync(id, options)`, `deleteByIdAsync(id)`.
 - `createAsync` / `updateByIdAsync` take an `options` object typed `Create<Entity>Options` /

@@ -1,0 +1,3 @@
+# TypeORM migrations live here.
+# Generated via: pnpm typeorm migration:generate ./apps/api/src/migrations/<Name> -d ./apps/api/src/data-source.ts
+# No migrations yet — Task 1 wires the toolchain but introduces no entities (tables arrive in tasks 2/3/5).

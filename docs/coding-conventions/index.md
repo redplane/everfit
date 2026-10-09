@@ -10,6 +10,11 @@ matching folder below. Each folder scopes its conventions to a specific technolo
 2. Open the folder that matches it and follow the rules inside.
 3. Also apply the cross-cutting rules in `best-practices/`.
 
+## Package management
+
+- If the project is a **Node.js** project, use **pnpm** for package management (e.g. `pnpm install`,
+  `pnpm add <pkg>`, `pnpm nx <target>`) rather than `npm` or `yarn`.
+
 ## Folder naming
 
 - Folders that group a collection of related files use a **plural noun** — e.g. `models`,

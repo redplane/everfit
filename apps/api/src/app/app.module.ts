@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import { ExceptionFilterModule } from '../common/filters/exception-filter.module';
 import { TimeContextModule } from '../common/time-context/time-context.module';
 import { JoiServiceModule } from '../common/services/joi/joi.module';
+import { UserApiModule } from '../modules/apis/user/user-api.module';
 import { databaseConfig } from '../common/config/database.config';
 import { apiDocumentConfig } from '../common/config/api-document.config';
 import { envValidationJoiSchema } from '../common/config/env-validation.joi-schema';
@@ -36,6 +37,7 @@ import { envValidationJoiSchema } from '../common/config/env-validation.joi-sche
     TimeContextModule,
     JoiServiceModule,
     ExceptionFilterModule,
+    UserApiModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -57,6 +57,7 @@ matching folder below. Each folder scopes its conventions to a specific technolo
 ### `best-practices/` — cross-cutting (language/framework-agnostic)
 
 - [`api-documentation.md`](./best-practices/api-documentation.md) — OpenAPI + Scalar, domain grouping, meaningful titles, documenting required roles.
+- [`good-habits.md`](./best-practices/good-habits.md) — meaningful method/variable names and required comments for methods and variables.
 - [`handle-condition.md`](./best-practices/handle-condition.md) — `if ... return` vs `if/else`, and `switch`/`case` for limited value sets.
 - [`time-with-di.md`](./best-practices/time-with-di.md) — avoid static time classes in DI frameworks; inject a time context.
 - [`unit-testing.md`](./best-practices/unit-testing.md) — cover every branch, assert thrown exceptions exactly, in-memory DB, ≥80% coverage, group a function's tests in one file.

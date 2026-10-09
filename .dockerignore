@@ -1,0 +1,13 @@
+# Keep the Docker build context small and avoid clobbering the image's
+# freshly-installed dependencies with host artifacts.
+node_modules
+**/node_modules
+dist
+tmp
+.nx/cache
+.nx/workspace-data
+.git
+.husky/_
+*.log
+.env.local
+.env.*.local

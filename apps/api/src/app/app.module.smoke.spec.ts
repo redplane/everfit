@@ -9,6 +9,8 @@ import { MuscleGroupEntity } from '../modules/cores/exercise/entities/muscle-gro
 import { ExerciseMuscleGroupEntity } from '../modules/cores/exercise/entities/exercise-muscle-group.entity';
 import { WorkoutEntryEntity } from '../modules/cores/workout/entities/workout-entry.entity';
 import { WorkoutSetEntity } from '../modules/cores/workout/entities/workout-set.entity';
+import { TimeContextInjectionTokens } from '../common/time-context/time-context-injection-tokens';
+import { ITimeContext } from '../common/time-context/time-context.interface';
 
 const SEED_USER_ID = '018f6b0a-0000-7000-8000-000000000001';
 const SEED_EXERCISE_ID = '018f6b0a-0000-7000-8000-0000000000a1';
@@ -598,6 +600,155 @@ describe('AppModule (bootstrap smoke) — personal records (F7)', () => {
   it('does NOT mount the double-prefixed path /api/api/personal-record', async () => {
     const response = await fetch(
       `${baseUrl}/api/api/personal-record?userId=${SEED_USER_ID}&exerciseId=${SEED_EXERCISE_ID}&unit=kg`,
+    );
+
+    expect(response.status).toBe(404);
+  });
+});
+
+/**
+ * PR comparison (F8) boots its own app over the seeded personal-records DataSource, with a FIXED clock
+ * (via overriding CONTEXT__TIME) pinned to 2026-10-15T00:00:00Z so that, for timezone
+ * Asia/Ho_Chi_Minh, the current month window [2026-09-30T17:00Z, 2026-10-31T17:00Z) contains the two
+ * seeded October sets and the previous month window is empty. Proves the route is mounted at
+ * /api/personal-record/comparison, the timezone-aware boundaries flow through, the required
+ * timezone/unit rules hold, and unknown user/exercise map to 404.
+ */
+describe('AppModule (bootstrap smoke) — PR comparison (F8)', () => {
+  let app: INestApplication;
+  let dataSource: DataSource;
+  let baseUrl: string;
+
+  const FIXED_NOW = new Date('2026-10-15T00:00:00.000Z');
+  const fixedClock: ITimeContext = {
+    getUtcNowAsync: () => Promise.resolve(FIXED_NOW),
+  };
+
+  beforeAll(async () => {
+    process.env.NODE_ENV = 'test';
+    process.env.DATABASE__HOST = 'localhost';
+    process.env.DATABASE__USERNAME = 'test';
+    process.env.DATABASE__PASSWORD = 'test';
+    process.env.DATABASE__NAME = 'test';
+    process.env.API_DOCUMENT__ENABLED = 'false';
+
+    dataSource = await createInMemoryDataSource({ seedPersonalRecords: true });
+
+    const { AppModule } = await import('./app.module');
+
+    const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(getDataSourceToken())
+      .useValue(dataSource)
+      .overrideProvider(TimeContextInjectionTokens.CONTEXT__TIME)
+      .useValue(fixedClock)
+      .compile();
+
+    app = moduleRef.createNestApplication();
+    app.setGlobalPrefix('api');
+    await app.init();
+    await app.listen(0, '127.0.0.1');
+    baseUrl = await app.getUrl();
+  });
+
+  afterAll(async () => {
+    await app?.close();
+    if (dataSource?.isInitialized) {
+      await dataSource.destroy();
+    }
+  });
+
+  it('serves the comparison at /api/personal-record/comparison (200, current month holds the seeded PRs, previous is new)', async () => {
+    const response = await fetch(
+      `${baseUrl}/api/personal-record/comparison?userId=${SEED_USER_ID}&exerciseId=${SEED_EXERCISE_ID}&granularity=month&timezone=Asia/Ho_Chi_Minh&unit=kg`,
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.granularity).toBe('month');
+    expect(body.timezone).toBe('Asia/Ho_Chi_Minh');
+    // Boundaries are the local-month-in-UTC windows.
+    expect(body.current.periodStart).toBe('2026-09-30T17:00:00.000Z');
+    expect(body.current.periodEnd).toBe('2026-10-31T17:00:00.000Z');
+    expect(body.previous.periodStart).toBe('2026-08-31T17:00:00.000Z');
+    expect(body.previous.periodEnd).toBe('2026-09-30T17:00:00.000Z');
+    // Current holds the seeded PRs; previous is empty → delta "new".
+    expect(body.current.maxWeight.weight).toBe(130);
+    expect(body.previous.maxWeight).toBeNull();
+    expect(body.delta.maxWeight.direction).toBe('new');
+    expect(body.delta.maxWeight.absolute).toBeNull();
+    expect(body.delta.maxWeight.percent).toBeNull();
+  });
+
+  it('converts weight-scaled values to the requested unit (lb)', async () => {
+    const response = await fetch(
+      `${baseUrl}/api/personal-record/comparison?userId=${SEED_USER_ID}&exerciseId=${SEED_EXERCISE_ID}&granularity=month&timezone=Asia/Ho_Chi_Minh&unit=lb`,
+    );
+
+    const body = await response.json();
+    expect(body.unit).toBe('lb');
+    // 130 kg -> ~286.6 lb.
+    expect(body.current.maxWeight.weight).toBeCloseTo(286.6, 1);
+  });
+
+  it('returns 400 when the required `unit` is omitted', async () => {
+    const response = await fetch(
+      `${baseUrl}/api/personal-record/comparison?userId=${SEED_USER_ID}&exerciseId=${SEED_EXERCISE_ID}&granularity=month&timezone=Asia/Ho_Chi_Minh`,
+    );
+
+    expect(response.status).toBe(400);
+  });
+
+  it('returns 400 when the required `timezone` is omitted', async () => {
+    const response = await fetch(
+      `${baseUrl}/api/personal-record/comparison?userId=${SEED_USER_ID}&exerciseId=${SEED_EXERCISE_ID}&granularity=month&unit=kg`,
+    );
+
+    expect(response.status).toBe(400);
+  });
+
+  it('returns 400 when the `timezone` is not a valid IANA zone', async () => {
+    const response = await fetch(
+      `${baseUrl}/api/personal-record/comparison?userId=${SEED_USER_ID}&exerciseId=${SEED_EXERCISE_ID}&granularity=month&timezone=Mars/Phobos&unit=kg`,
+    );
+
+    expect(response.status).toBe(400);
+  });
+
+  it('returns 400 when the `granularity` is omitted or invalid', async () => {
+    const omitted = await fetch(
+      `${baseUrl}/api/personal-record/comparison?userId=${SEED_USER_ID}&exerciseId=${SEED_EXERCISE_ID}&timezone=Asia/Ho_Chi_Minh&unit=kg`,
+    );
+    const invalid = await fetch(
+      `${baseUrl}/api/personal-record/comparison?userId=${SEED_USER_ID}&exerciseId=${SEED_EXERCISE_ID}&granularity=decade&timezone=Asia/Ho_Chi_Minh&unit=kg`,
+    );
+
+    expect(omitted.status).toBe(400);
+    expect(invalid.status).toBe(400);
+  });
+
+  it('returns 404 USER_NOT_FOUND for an unknown user', async () => {
+    const response = await fetch(
+      `${baseUrl}/api/personal-record/comparison?userId=${UNKNOWN_USER_ID}&exerciseId=${SEED_EXERCISE_ID}&granularity=month&timezone=Asia/Ho_Chi_Minh&unit=kg`,
+    );
+
+    expect(response.status).toBe(404);
+    const body = await response.json();
+    expect(body.code).toBe('USER_NOT_FOUND');
+  });
+
+  it('returns 404 EXERCISE_NOT_FOUND for an unknown exercise', async () => {
+    const response = await fetch(
+      `${baseUrl}/api/personal-record/comparison?userId=${SEED_USER_ID}&exerciseId=${UNKNOWN_EXERCISE_ID}&granularity=month&timezone=Asia/Ho_Chi_Minh&unit=kg`,
+    );
+
+    expect(response.status).toBe(404);
+    const body = await response.json();
+    expect(body.code).toBe('EXERCISE_NOT_FOUND');
+  });
+
+  it('does NOT mount the double-prefixed path /api/api/personal-record/comparison', async () => {
+    const response = await fetch(
+      `${baseUrl}/api/api/personal-record/comparison?userId=${SEED_USER_ID}&exerciseId=${SEED_EXERCISE_ID}&granularity=month&timezone=Asia/Ho_Chi_Minh&unit=kg`,
     );
 
     expect(response.status).toBe(404);

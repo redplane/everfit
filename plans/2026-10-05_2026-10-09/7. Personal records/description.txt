@@ -1,0 +1,51 @@
+TASK 7 — Personal records (PRs)
+
+Feature IDs: F7
+Depends on: Task 2 (User master data), Task 3 (Exercise & muscle-group master data),
+            Task 4 (Unit conversion registry), Task 5 (Log workout entry)
+  (Independent of Task 6 — may be built in parallel with it.)
+  (Task 3 is required because PR aggregation validates that the exercise exists via Task 3's
+   exercise master data before aggregating.)
+
+User story
+  As a coach, I want a client's personal records for a given exercise so that I can see
+  their best performances and when they happened.
+
+Acceptance criteria
+  - When PRs are requested for a known user and exercise, the API returns the heaviest
+    single set (max weight), the highest-volume set (reps x weight), and the best estimated
+    1RM using the Epley formula weight x (1 + reps/30).
+  - When each PR is returned, it includes the date it was achieved (and the contributing
+    reps/weight where relevant).
+  - When the required unit parameter is supplied, PR weights are returned in that unit
+    (computed on normalized kg, converted for display only).
+  - When the unit parameter is omitted, the API returns 400 (there is no default unit).
+  - When a known user/exercise has no sets, PR fields are empty/null (200), not an error.
+  - When the userId is unknown, the API returns 404 USER_NOT_FOUND.
+  - When the exerciseId is unknown, the API returns 404 EXERCISE_NOT_FOUND. This is distinct
+    from a known exercise that has no sets (-> 200 with null metrics) and from an unknown user
+    (-> 404 USER_NOT_FOUND).
+
+Edge cases
+  - Unknown user -> 404 USER_NOT_FOUND; unknown exercise -> 404 EXERCISE_NOT_FOUND; known
+    user + known exercise with no sets -> 200 with null/empty PR metrics (not an error).
+  - No data -> null/empty PRs (not an error).
+  - Aggregations are computed on normalized kg; display is converted via Task 4.
+  - Must be efficient at 50k+ entries (index-backed aggregation; the architect owns
+    indexing).
+
+Out of scope / assumptions
+  - 1RM uses the Epley formula only (per the spec). Other PR definitions are out of scope.
+
+Notes
+  - Consumes the workout data model from Task 5; the aggregation logic here is reused and
+    extended by the period comparison in Task 8.
+
+Change log
+  - 2026-10-10 (PO): Added Task 3 to Depends on — PR aggregation validates exercise existence
+    using Task 3's exercise master data (surfacing EXERCISE_NOT_FOUND) before aggregating.
+    Added an acceptance criterion / edge case for the human-approved decision that an unknown
+    exerciseId returns 404 EXERCISE_NOT_FOUND, kept distinct from a known exercise with no
+    sets (200, null metrics) and an unknown user (404 USER_NOT_FOUND). Rationale: give callers
+    a clear, consistent not-found signal per entity rather than conflating "no such exercise"
+    with "no data yet". WHAT-level only.

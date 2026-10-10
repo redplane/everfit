@@ -1,0 +1,38 @@
+TASK 6 — Get workout history
+
+Feature IDs: F6
+Depends on: Task 2 (User master data), Task 3 (Exercise & muscle-group master data),
+            Task 4 (Unit conversion registry), Task 5 (Log workout entry)
+  (Independent of Task 7 — may be built in parallel with it.)
+
+User story
+  As a coach, I want to retrieve a client's logged workouts, filtered and paginated, in the
+  unit I ask for, so that I can review their training over time.
+
+Acceptance criteria
+  - When history is requested for a known user, matching workout records are returned,
+    cursor-paginated (keyset), stable under concurrent inserts and performant at 50k+
+    entries.
+  - When an exercise-name filter is applied, it matches by partial name.
+  - When a date-range filter is applied, only records within the UTC range are returned.
+  - When a muscle-group filter is applied, only records whose exercise maps to that muscle
+    group are returned (via Task 3).
+  - When the required unit parameter is supplied, weights are returned converted to that
+    unit (display-only; storage stays kg).
+  - When the unit parameter is omitted, the API returns a 400 validation error (there is no
+    default unit).
+  - When a known user has no matching records, an empty result is returned (not an error).
+  - When the userId is unknown, the API returns 404 USER_NOT_FOUND.
+
+Edge cases
+  - Empty date range / no data -> empty paginated result, not an error.
+  - Invalid cursor, invalid/unsupported unit, or bad date format -> 400.
+  - Large datasets (50k+) must remain performant (index-backed; the architect owns
+    indexing).
+
+Out of scope / assumptions
+  - Offset pagination is reserved for small master-data lists, not history (which uses
+    cursor/keyset pagination).
+
+Notes
+  - Reads the workout data produced by Task 5 and the muscle-group mapping from Task 3.

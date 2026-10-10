@@ -1,0 +1,46 @@
+TASK 2 — User master data & existence validation
+
+Feature IDs: F2
+Depends on: Task 1 (Platform foundation)
+
+User story
+  As a coach, I want users to be real, known records so that logging and reads are tied to
+  an actual client and an unknown userId is reported clearly rather than silently returning
+  nothing.
+
+Acceptance criteria
+  - When a user exists, any feature that references that userId resolves successfully.
+  - When a read (history / PR / comparison) is requested for a userId that does not exist,
+    the API returns 404 with the stable error code USER_NOT_FOUND.
+  - When a workout log is attempted for a non-existent userId, the request is rejected
+    (not-found), consistent with the all-or-nothing rule in Task 5.
+  - When data is read for a known user who has no workout data, the result is an empty
+    result, not an error (this is distinct from the 404 for an unknown user).
+  - When a list-users request is made, users are returned offset-paginated with a stable
+    ordering, so a caller can discover valid userIds to use on reads and logging.
+  - When no users exist, or the requested page is beyond the data, the list-users request
+    returns an empty list, not an error.
+
+Edge cases
+  - Clearly distinguish "unknown user -> 404 USER_NOT_FOUND" from "known user, no matching
+    data -> empty result".
+  - A missing or malformed userId parameter returns a 400 validation error.
+  - List users: invalid pagination parameters -> 400; a page beyond the data -> empty list
+    (not an error); a stable, deterministic ordering is applied.
+
+Out of scope / assumptions
+  - No user profile management beyond the minimal master record needed to validate
+    existence and support discovery. No authentication (userId is passed as a parameter per
+    the spec). The list is read-only discovery (no create/update/delete this sprint).
+  - User records are master data and are seedable via Task 9.
+
+Notes
+  - This task introduces the users master data that later read features rely on to produce
+    the 404-vs-empty distinction.
+
+Change log
+  - 2026-10-09 (PO): Added a read-only "list users" capability (offset-paginated discovery)
+    per a human-approved scope refinement from the architecture review. Rationale: reads
+    require a real userId (Q9), so callers need a way to discover valid userIds; this
+    realizes the "offset pagination for small master-data lists" half of the Q4 decision.
+    WHAT-level only; pagination/endpoint internals remain the architect's.

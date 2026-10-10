@@ -1,0 +1,40 @@
+TASK 5 — Log a workout entry (including bulk)
+
+Feature IDs: F5
+Depends on: Task 2 (User master data), Task 3 (Exercise & muscle-group master data),
+            Task 4 (Unit conversion registry)
+
+User story
+  As a coach, I want to log a client's workout — one or many exercises at once, each with
+  its sets — so that their training is recorded accurately and efficiently.
+
+Acceptance criteria
+  - When a valid log request is submitted for a known user and existing exercise(s), each
+    set is stored as its own record (row-per-set) with reps, weight, original unit,
+    normalized kg value, and a UTC timestamp.
+  - When a request contains multiple exercises (bulk), all of them are logged in a single
+    atomic transaction.
+  - When any entry/set in a single or bulk request fails validation or persistence, the
+    entire request is rejected and nothing is written (all-or-nothing), with a structured
+    error identifying the problem(s).
+  - When a duplicate set would violate the uniqueness rule, the API returns a structured
+    409 conflict; within a bulk request, the whole batch rolls back.
+  - When two legitimately identical sets (same reps/weight) that are NOT true duplicates are
+    logged, both are accepted (the uniqueness key distinguishes real repeats from
+    duplicates).
+
+Edge cases
+  - Null/missing date, negative or zero weight/reps, empty sets array -> 400 validation.
+  - Invalid or unsupported unit -> 400 (via Task 4).
+  - Unknown user -> not-found; unknown exercise -> not-found; both roll back the batch.
+  - Concurrent writes of the same set: a database unique constraint makes this race-safe;
+    the losing write returns 409.
+
+Out of scope / assumptions
+  - No edit/delete of logged workouts this sprint.
+  - The uniqueness key granularity (e.g. precise timestamp and/or set ordinal, chosen so a
+    legitimate repeated set is not rejected) is the architect's to define.
+
+Notes
+  - This task establishes the workout data model (row-per-set) that history (Task 6), PRs
+    (Task 7), and the seed tool (Task 9) all consume.

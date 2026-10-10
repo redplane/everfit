@@ -1,7 +1,9 @@
 TASK 8 — PR comparison across named periods
 
 Feature IDs: F8
-Depends on: Task 7 (Personal records)
+Depends on: Task 7 (Personal records); transitively Task 2 (User master data),
+            Task 3 (Exercise & muscle-group master data), Task 4 (Unit conversion registry),
+            Task 5 (Log workout entry)
 
 User story
   As a coach, I want to compare a client's PRs between the current and previous period
@@ -11,23 +13,33 @@ Acceptance criteria
   - When comparison is requested for a user, exercise, and granularity (week / month /
     year), the API compares the current period against the immediately preceding period of
     that granularity.
+  - When the required timezone parameter (an IANA zone, e.g. "Asia/Ho_Chi_Minh") is
+    supplied, the named-period boundaries (week / month / year, current vs previous) are
+    computed in that timezone's local wall-clock and then resolved to UTC for querying, so
+    "this month" reflects the caller's calendar rather than the server's. Omission of
+    timezone -> 400 validation error.
   - When the periods are returned, the response includes a current and a previous block,
-    each with its UTC period start/end and the three PRs (max weight, max volume, best 1RM),
+    each with its period start/end and the three PRs (max weight, max volume, best 1RM),
     each with its value and achieved-at date.
   - When both periods have data, a server-computed delta block gives, per PR metric, the
-    absolute difference (current minus previous), the percent, and the direction
-    (up / down / same).
+    absolute difference (current minus previous), the percent, and the direction.
+  - The delta direction value set is: "up" (current > previous), "down" (current <
+    previous), "same" (equal), "new" (previous is null but current is present -> null
+    percent, no divide-by-zero), and "none" (current is null but previous is present).
   - When a period has no data, that period's PR fields are null (empty-but-not-an-error).
-  - When previous is null for a metric, the delta reports direction "new" with a null
-    percent (no divide-by-zero).
   - When the required unit parameter is supplied, all displayed weights are in that unit
     (delta computed on kg, converted for display only); omission -> 400.
   - When the userId is unknown, the API returns 404 USER_NOT_FOUND.
+  - When the exerciseId is unknown, the API returns 404 EXERCISE_NOT_FOUND (consistent with
+    the PR endpoint in Task 7).
 
 Edge cases
-  - Period boundaries are UTC-based, computed from the current time via the injected time
-    context.
-  - No-data periods and null-previous deltas are handled as above, never as errors.
+  - Period boundaries are derived from the current time (via the injected time context) and
+    the caller-supplied IANA timezone: local wall-clock period bounds are converted to UTC
+    for querying.
+  - No-data periods and null-previous / null-current deltas are handled via the direction
+    value set above, never as errors.
+  - Unknown user -> 404 USER_NOT_FOUND; unknown exercise -> 404 EXERCISE_NOT_FOUND.
 
 Out of scope / assumptions
   - Only named relative periods (week/month/year current-vs-previous) this sprint — NOT
@@ -36,3 +48,15 @@ Out of scope / assumptions
 Notes
   - Builds directly on the PR aggregation from Task 7 and the injected time context from
     Task 1.
+
+Change log
+  - 2026-10-10 (PO): Reconciled Depends on to show the real chain (Task 7, transitively
+    2/3/4/5). Added human-approved acceptance criteria: (a) unknown exerciseId -> 404
+    EXERCISE_NOT_FOUND, consistent with the PR endpoint; (b) a required IANA timezone
+    parameter — named-period boundaries are computed in that timezone's local wall-clock and
+    resolved to UTC for querying (omission -> 400), so periods reflect the caller's calendar
+    rather than the server's; (c) the delta direction value set now also includes "none" for
+    the current-null-but-previous-present case (alongside up/down/same/new). Note: this
+    timezone-parameter decision is specific to the comparison endpoint and refines the
+    goal.md Q5 "UTC boundaries from current time" wording; period math still ultimately runs
+    in UTC after local bounds are resolved. WHAT-level only.

@@ -44,6 +44,16 @@ export class ExerciseService implements IExerciseService {
     return this.__exerciseRepository.existsBy({ id });
   }
 
+  public async getByIdsAsync(ids: string[]): Promise<ExerciseEntity[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const distinctIds = [...new Set(ids)];
+
+    return this.__exerciseRepository.find({ where: { id: In(distinctIds) } });
+  }
+
   public async searchAsync(
     criteria: ExerciseSearchCriteria,
   ): Promise<SearchResult<ExerciseEntity>> {

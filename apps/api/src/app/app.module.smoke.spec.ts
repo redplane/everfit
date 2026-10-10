@@ -12,6 +12,9 @@ import { WorkoutSetEntity } from '../modules/cores/workout/entities/workout-set.
 
 const SEED_USER_ID = '018f6b0a-0000-7000-8000-000000000001';
 const SEED_EXERCISE_ID = '018f6b0a-0000-7000-8000-0000000000a1';
+const SEED_ENTRY_1_ID = '018f6b0a-0000-7000-8000-000000000b01';
+const SEED_ENTRY_2_ID = '018f6b0a-0000-7000-8000-000000000b02';
+const UNKNOWN_USER_ID = '018f6b0a-0000-7000-8000-0000000000ee';
 
 /**
  * Bootstrap / wiring smoke test. It composes the REAL `AppModule` exactly as `main.ts` does
@@ -23,7 +26,7 @@ const SEED_EXERCISE_ID = '018f6b0a-0000-7000-8000-0000000000a1';
  * live Postgres is required in CI.
  */
 async function createInMemoryDataSource(
-  options: { seedWorkoutRefs?: boolean } = {},
+  options: { seedWorkoutRefs?: boolean; seedHistory?: boolean } = {},
 ): Promise<DataSource> {
   const db = newDb();
 
@@ -103,6 +106,27 @@ async function createInMemoryDataSource(
       VALUES ('${SEED_USER_ID}', 'Smoke User', now());
       INSERT INTO exercises (id, name, created_time)
       VALUES ('${SEED_EXERCISE_ID}', 'Bench Press', now());
+    `);
+  }
+
+  // Seed a user, an exercise, and two history entries (each with a set) so the history route (F6)
+  // returns a real cursor-paginated page. Uses a separate instance so it does not disturb the
+  // empty-total discovery assertions above.
+  if (options.seedHistory) {
+    db.public.none(`
+      INSERT INTO users (id, name, created_time)
+      VALUES ('${SEED_USER_ID}', 'History User', now());
+      INSERT INTO exercises (id, name, created_time)
+      VALUES ('${SEED_EXERCISE_ID}', 'Bench Press', now());
+      INSERT INTO workout_entries (id, user_id, exercise_id, performed_at, created_time)
+      VALUES
+        ('${SEED_ENTRY_1_ID}', '${SEED_USER_ID}', '${SEED_EXERCISE_ID}', '2026-10-01T10:00:00.000Z', now()),
+        ('${SEED_ENTRY_2_ID}', '${SEED_USER_ID}', '${SEED_EXERCISE_ID}', '2026-10-02T10:00:00.000Z', now());
+      INSERT INTO workout_sets
+        (id, workout_entry_id, user_id, exercise_id, performed_at, set_number, reps, weight, unit, weight_kg, created_time)
+      VALUES
+        ('018f6b0a-0000-7000-8000-000000000c01', '${SEED_ENTRY_1_ID}', '${SEED_USER_ID}', '${SEED_EXERCISE_ID}', '2026-10-01T10:00:00.000Z', 1, 8, 100, 'kg', 100, now()),
+        ('018f6b0a-0000-7000-8000-000000000c02', '${SEED_ENTRY_2_ID}', '${SEED_USER_ID}', '${SEED_EXERCISE_ID}', '2026-10-02T10:00:00.000Z', 1, 5, 120, 'kg', 120, now());
     `);
   }
 
@@ -307,5 +331,128 @@ describe('AppModule (bootstrap smoke) — workout logging (F5)', () => {
     });
 
     expect(doublePrefixed.status).toBe(404);
+  });
+});
+
+/**
+ * Workout history (F6) boots its own app over a seeded in-memory DataSource (a user + exercise + two
+ * entries with sets), proving the real module graph composes the controller → history-query
+ * orchestration → core user/exercise/scale-unit/workout services, that the route is mounted at
+ * /api/workout-history, that the keyset cursor pages correctly, and that the required-unit and
+ * unknown-user rules hold end to end.
+ */
+describe('AppModule (bootstrap smoke) — workout history (F6)', () => {
+  let app: INestApplication;
+  let dataSource: DataSource;
+  let baseUrl: string;
+
+  beforeAll(async () => {
+    process.env.NODE_ENV = 'test';
+    process.env.DATABASE__HOST = 'localhost';
+    process.env.DATABASE__USERNAME = 'test';
+    process.env.DATABASE__PASSWORD = 'test';
+    process.env.DATABASE__NAME = 'test';
+    process.env.API_DOCUMENT__ENABLED = 'false';
+
+    dataSource = await createInMemoryDataSource({ seedHistory: true });
+
+    const { AppModule } = await import('./app.module');
+
+    const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(getDataSourceToken())
+      .useValue(dataSource)
+      .compile();
+
+    app = moduleRef.createNestApplication();
+    app.setGlobalPrefix('api');
+    await app.init();
+    await app.listen(0, '127.0.0.1');
+    baseUrl = await app.getUrl();
+  });
+
+  afterAll(async () => {
+    await app?.close();
+    if (dataSource?.isInitialized) {
+      await dataSource.destroy();
+    }
+  });
+
+  it('serves a cursor-paginated history page at /api/workout-history (200, keyset order)', async () => {
+    const response = await fetch(
+      `${baseUrl}/api/workout-history?userId=${SEED_USER_ID}&unit=kg&limit=1`,
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.limit).toBe(1);
+    expect(body.items).toHaveLength(1);
+    // Newest first (performed_at DESC): entry 2 (2026-10-02).
+    expect(body.items[0].entryId).toBe(SEED_ENTRY_2_ID);
+    expect(body.items[0].exerciseName).toBe('Bench Press');
+    expect(body.items[0].sets[0].weight).toBe(120);
+    expect(typeof body.nextCursor).toBe('string');
+  });
+
+  it('follows nextCursor to the second page (no overlap)', async () => {
+    const first = await (
+      await fetch(`${baseUrl}/api/workout-history?userId=${SEED_USER_ID}&unit=kg&limit=1`)
+    ).json();
+
+    const second = await fetch(
+      `${baseUrl}/api/workout-history?userId=${SEED_USER_ID}&unit=kg&limit=1&cursor=${encodeURIComponent(
+        first.nextCursor,
+      )}`,
+    );
+
+    expect(second.status).toBe(200);
+    const body = await second.json();
+    expect(body.items).toHaveLength(1);
+    expect(body.items[0].entryId).toBe(SEED_ENTRY_1_ID);
+    expect(body.nextCursor).toBeNull();
+  });
+
+  it('converts weights to the requested unit (lb)', async () => {
+    const response = await fetch(
+      `${baseUrl}/api/workout-history?userId=${SEED_USER_ID}&unit=lb&limit=1`,
+    );
+
+    const body = await response.json();
+    // 120 kg -> ~264.55 lb; original retained.
+    expect(body.items[0].unit).toBe('lb');
+    expect(body.items[0].sets[0].weight).toBeCloseTo(264.55, 1);
+    expect(body.items[0].sets[0].originalWeight).toBe(120);
+    expect(body.items[0].sets[0].originalUnit).toBe('kg');
+  });
+
+  it('returns 400 when the required `unit` is omitted', async () => {
+    const response = await fetch(`${baseUrl}/api/workout-history?userId=${SEED_USER_ID}`);
+
+    expect(response.status).toBe(400);
+  });
+
+  it('returns 400 for a malformed cursor', async () => {
+    const response = await fetch(
+      `${baseUrl}/api/workout-history?userId=${SEED_USER_ID}&unit=kg&cursor=not-a-valid-cursor`,
+    );
+
+    expect(response.status).toBe(400);
+  });
+
+  it('returns 404 USER_NOT_FOUND for an unknown user', async () => {
+    const response = await fetch(
+      `${baseUrl}/api/workout-history?userId=${UNKNOWN_USER_ID}&unit=kg`,
+    );
+
+    expect(response.status).toBe(404);
+    const body = await response.json();
+    expect(body.code).toBe('USER_NOT_FOUND');
+  });
+
+  it('does NOT mount the double-prefixed path /api/api/workout-history', async () => {
+    const response = await fetch(
+      `${baseUrl}/api/api/workout-history?userId=${SEED_USER_ID}&unit=kg`,
+    );
+
+    expect(response.status).toBe(404);
   });
 });

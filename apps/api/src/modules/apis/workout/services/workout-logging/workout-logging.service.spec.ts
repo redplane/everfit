@@ -43,6 +43,8 @@ class StubScaleUnitConversionService implements Partial<IScaleUnitConversionServ
 class StubWorkoutService implements IWorkoutService {
   public lastOptions!: CreateWorkoutOptions;
   public error?: Error;
+  // History read is unused by the logging service; present only to satisfy the interface.
+  public searchHistoryAsync = jest.fn();
   public createManyAsync = jest.fn((options: CreateWorkoutOptions) => {
     this.lastOptions = options;
     if (this.error) {

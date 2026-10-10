@@ -10,6 +10,7 @@ import { UserApiModule } from '../modules/apis/user/user-api.module';
 import { ExerciseApiModule } from '../modules/apis/exercise/exercise-api.module';
 import { MuscleGroupApiModule } from '../modules/apis/muscle-group/muscle-group-api.module';
 import { WorkoutApiModule } from '../modules/apis/workout/workout-api.module';
+import { WorkoutHistoryApiModule } from '../modules/apis/workout-history/workout-history-api.module';
 import { databaseConfig } from '../common/config/database.config';
 import { apiDocumentConfig } from '../common/config/api-document.config';
 import { envValidationJoiSchema } from '../common/config/env-validation.joi-schema';
@@ -44,6 +45,7 @@ import { envValidationJoiSchema } from '../common/config/env-validation.joi-sche
     ExerciseApiModule,
     MuscleGroupApiModule,
     WorkoutApiModule,
+    WorkoutHistoryApiModule,
   ],
   controllers: [AppController],
   providers: [AppService],

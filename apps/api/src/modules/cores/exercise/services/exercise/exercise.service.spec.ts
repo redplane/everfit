@@ -132,6 +132,38 @@ describe('ExerciseService', () => {
   });
   //#endregion
 
+  //#region getByIdsAsync
+  describe('getByIdsAsync', () => {
+    it('returns an empty array for an empty input (no query)', async () => {
+      const findSpy = jest.spyOn(exerciseRepository, 'find');
+
+      const result = await service.getByIdsAsync([]);
+
+      expect(result).toEqual([]);
+      expect(findSpy).not.toHaveBeenCalled();
+    });
+
+    it('returns the exercises for the given ids in one query', async () => {
+      const a = await service.createAsync({ name: 'Bench Press' });
+      const b = await service.createAsync({ name: 'Overhead Press' });
+      await service.createAsync({ name: 'Unwanted' });
+
+      const result = await service.getByIdsAsync([a.id, b.id]);
+
+      expect(result.map((e) => e.id).sort()).toEqual([a.id, b.id].sort());
+    });
+
+    it('de-duplicates repeated ids and returns only existing exercises', async () => {
+      const a = await service.createAsync({ name: 'Row' });
+
+      const result = await service.getByIdsAsync([a.id, a.id, MISSING_ID]);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe(a.id);
+    });
+  });
+  //#endregion
+
   //#region existsByIdAsync
   describe('existsByIdAsync', () => {
     it('returns true when an exercise with the id exists', async () => {

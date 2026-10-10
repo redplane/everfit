@@ -8,6 +8,11 @@ import { WorkoutSetEntity } from '../../entities/workout-set.entity';
 import { WorkoutSetAlreadyExistsException } from '../../exceptions/workout-set-already-exists.exception';
 import { CreateWorkoutOptions } from '../../../../../models/options/create-workout-options';
 import { WorkoutHistorySearchCriteria } from '../../../../../models/criteria/workout-history-search-criteria';
+import { PersonalRecordCriteria } from '../../../../../models/criteria/personal-record-criteria';
+import {
+  PersonalRecordAggregate,
+  PersonalRecordWinner,
+} from '../../../../../models/results/personal-record-aggregate';
 import { CursorPage } from '../../../../../common/models/cursor-page';
 import { ITimeContext } from '../../../../../common/time-context/time-context.interface';
 import { TimeContextInjectionTokens } from '../../../../../common/time-context/time-context-injection-tokens';
@@ -98,9 +103,83 @@ export class WorkoutService implements IWorkoutService {
 
     return { items, hasMore };
   }
+
+  public async getPersonalRecordsAsync(
+    criteria: PersonalRecordCriteria,
+  ): Promise<PersonalRecordAggregate> {
+    // Three independent top-1 index scans — each driven by its own expression/descending index on
+    // (user_id, exercise_id, <metric> DESC). Run concurrently; each is O(log n) at 50k+.
+    const [maxWeightRow, maxVolumeRow, best1RmRow] = await Promise.all([
+      this.__topSetByAsync(criteria, 's.weight_kg'),
+      this.__topSetByAsync(criteria, '(s.reps * s.weight_kg)'),
+      this.__topSetByAsync(criteria, '(s.weight_kg * (1 + s.reps / 30.0))'),
+    ]);
+
+    return {
+      maxWeight: this.__toWinner(maxWeightRow),
+      maxVolume: this.__toWinner(maxVolumeRow, (row) => ({ volumeKg: row.reps * row.weightKg })),
+      best1Rm: this.__toWinner(best1RmRow, (row) => ({
+        // Epley: weight × (1 + reps / 30).
+        oneRepMaxKg: row.weightKg * (1 + row.reps / 30),
+      })),
+    };
+  }
   //#endregion
 
   //#region Helpers
+  /**
+   * Runs one top-1 read for a PR metric: filters by `(user_id, exercise_id)` (plus the optional
+   * half-open `performed_at` range for F8), orders by the metric `DESC` then `performed_at ASC,
+   * id ASC` (earliest achievement wins ties deterministically), and takes a single row. The
+   * `metricExpression` is written to match the corresponding index expression exactly so Postgres can
+   * serve it as an index scan. Returns `null` when no set matches.
+   */
+  private async __topSetByAsync(
+    criteria: PersonalRecordCriteria,
+    metricExpression: string,
+  ): Promise<WorkoutSetEntity | null> {
+    const query = this.__setRepository
+      .createQueryBuilder('s')
+      .where('s.user_id = :userId', { userId: criteria.userId })
+      .andWhere('s.exercise_id = :exerciseId', { exerciseId: criteria.exerciseId });
+
+    if (criteria.from !== undefined) {
+      query.andWhere('s.performed_at >= :from', { from: criteria.from });
+    }
+
+    if (criteria.to !== undefined) {
+      // Half-open upper bound [from, to) (F8 period boundaries).
+      query.andWhere('s.performed_at < :to', { to: criteria.to });
+    }
+
+    return query
+      .orderBy(metricExpression, 'DESC')
+      .addOrderBy('s.performed_at', 'ASC')
+      .addOrderBy('s.id', 'ASC')
+      .limit(1)
+      .getOne();
+  }
+
+  /**
+   * Maps a winning set row to a `PersonalRecordWinner` in kg (or `null` when there is no row). The
+   * optional `derive` callback adds the metric-specific derived value (`volumeKg` / `oneRepMaxKg`).
+   */
+  private __toWinner(
+    row: WorkoutSetEntity | null,
+    derive?: (row: WorkoutSetEntity) => Partial<PersonalRecordWinner>,
+  ): PersonalRecordWinner | null {
+    if (row === null) {
+      return null;
+    }
+
+    return {
+      weightKg: row.weightKg,
+      reps: row.reps,
+      achievedAt: row.performedAt,
+      ...(derive ? derive(row) : {}),
+    };
+  }
+
   /**
    * Loads the sets for a page of entries in one query (no N+1) and attaches them, ordered
    * `set_number ASC` so the response lists sets in their logged order.

@@ -32,7 +32,7 @@ end-to-end/external test scenarios and prepare the data needed to run them.
    - `architecture-design.md` — the contract (the HOW): the **API changes (if any)** section is
      the decisive input, plus request/response DTOs, error responses, and env vars.
    **Read-only** to you — never edit `description.txt` or `architecture-design.md`.
-2. `docs/planning/architecture.md` for the broader endpoint contracts.
+2. `plans/<sprint>/architecture.md` for the broader endpoint contracts.
 3. The guidelines in `docs/guidelines/` — especially
    `best-practices/api-documentation.md` (endpoint shapes, roles, error codes) and
    `typescript/frameworks/nestjs/api.md` (REST shapes, `SearchResult<T>`, status codes).

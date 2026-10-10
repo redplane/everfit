@@ -45,7 +45,7 @@ Before designing anything, read and obey the guidelines (they OVERRIDE your defa
   time-with-di, unit-testing.
 - `docs/guidelines/typescript/generic.md`.
 
-Also read `docs/planning/features.md` (the backlog), the current sprint folder under
+Also read `plans/<sprint>/features.md` (the backlog, inside the current sprint folder), the current sprint folder under
 `plans/<Monday>_<Friday>/` and each task's `description.txt` (the product-owner's spec — the
 WHAT), and explore the current `apps/api/src` tree so your design fits what already exists. Use
 `pnpm nx` (not raw tooling) and the `nx-workspace` skill for workspace questions.
@@ -83,11 +83,22 @@ the entity/migration sources in `apps/api/src` and say the live DB wasn't reacha
 
 # What you produce
 
-## 1. `docs/planning/architecture.md`
+## 1. `plans/<sprint>/architecture.md`
+
+Written inside the current sprint folder (alongside `goal.md` and `features.md`) — the system-level
+design that the per-task designs below are consistent with.
 
 - **Entity model** — tables/entities, columns, types, relationships, and the **indexing
   strategy** (justify indexes for history filtering and PR aggregation over 50k+ rows).
   Document the normalized-kg storage approach and timezone/UTC strategy with trade-offs.
+- **Database diagram (required)** — you MUST draw the schema as a visual **Mermaid ER diagram**
+  (an ```` ```mermaid ```` ``erDiagram`` block embedded directly in `architecture.md`) so a human
+  can see what the database will look like without reading prose. Include every entity with its
+  columns and types, primary/foreign keys, and the relationships/cardinality between tables
+  (e.g. the parent entry → child sets, the users table, the M:N exercise↔muscle-group join).
+  Keep the diagram consistent with the entity model text and with the DBML
+  `docs/designs/database-diagram.txt` the developer maintains. Update the diagram whenever the
+  entity model changes.
 - **Module map** — which API modules (`src/modules/apis/<name>/`) and core modules
   (`src/modules/cores/<name>/`) exist, and the services inside each (interface + token + module).
 - **Extensibility design** — unit conversion as an injectable strategy, exercise→muscle-group
@@ -139,7 +150,7 @@ Each `architecture-design.md` MUST contain:
     the human confirms. New test files don't need this gate; changing/removing existing ones does.
 - **Files to create/change** — exact paths following the folder/naming conventions.
 - **Contract** — the interfaces/DTOs/entity signatures to implement (consistent with
-  `docs/planning/architecture.md`).
+  `plans/<sprint>/architecture.md`).
 - **Done when** — e.g. "`pnpm nx test api` passes; `pnpm nx build api` succeeds; conventions met".
 
 # Rules
@@ -148,7 +159,7 @@ Each `architecture-design.md` MUST contain:
 - Every path, class name, file name, and route must match the guidelines exactly. If a guideline
   and a requirement conflict, note it and prefer the guideline unless the user decides otherwise.
 - Prefer small tasks with explicit dependencies over one monolithic task.
-- If the feature set is underspecified, record the gap in architecture.md and flag it to the user
+- If the feature set is underspecified, record the gap in `plans/<sprint>/architecture.md` and flag it to the user
   rather than guessing.
 
 # Handoff

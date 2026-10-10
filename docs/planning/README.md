@@ -8,8 +8,8 @@ previous one already wrote down.
 
 | Agent                | Responsibility                                                        | Reads                          | Writes                                 |
 | -------------------- | -------------------------------------------------------------------- | ------------------------------ | -------------------------------------- |
-| `product-owner`      | Write `goal.md` + resolve open questions, then (after approval) break the spec into features + task folders | `docs/requirement.md`   | `plans/<sprint>/goal.md`, `features.md`, `plans/<sprint>/<N>. <Title>/description.txt` |
-| `architect`          | After PO+human finalize tasks: per-task design (DB/API/tests) in dependency order | `features.md`, each `description.txt`, guidelines, src, DB tools | `architecture.md`, `plans/<sprint>/<N>. <Title>/architecture-design.md` |
+| `product-owner`      | Write `goal.md` + resolve open questions, then (after approval) break the spec into features + task folders | `docs/requirement.md`   | `plans/<sprint>/goal.md`, `plans/<sprint>/features.md`, `plans/<sprint>/<N>. <Title>/description.txt` |
+| `architect`          | After PO+human finalize tasks: per-task design (DB/API/tests) in dependency order | `plans/<sprint>/features.md`, each `description.txt`, guidelines, src, DB tools | `plans/<sprint>/architecture.md`, `plans/<sprint>/<N>. <Title>/architecture-design.md` |
 | `developer`          | Plan a confirmed task, then (after approval) implement + unit-test it; sync DB diagram; one **draft** PR per task (stacked if dependent) | a task folder's `description.txt` + `architecture-design.md`, architecture | `implementation-plan.md`, production code under `apps/api/src`, `docs/designs/database-diagram.txt`, a draft PR |
 | `reviewer`           | Code-review gate: review the diff vs contract + conventions; enforce coverage; on PASS hand off to `qa` | the task folder, diff, guidelines | a PASS / CHANGES-REQUESTED verdict (read-only) |
 | `qa`                 | External-testing gate after reviewer PASS: no-op for non-API tasks; for API tasks write a test plan (human-approved before the PR goes ready) | the task folder (`description.txt` + `architecture-design.md`), guidelines, DB tools | `plans/<sprint>/<N>. <Title>/tests/test-plan.md` |
@@ -19,12 +19,15 @@ All agents strictly follow `docs/guidelines/` — those conventions override any
 
 ## Artifacts
 
-- `docs/planning/features.md` — the product backlog (feature IDs `F1`, `F2`, …).
-- `docs/planning/architecture.md` — the system design (entities, indexes, API contracts, module map).
+All sprint-planning artifacts live **inside the sprint folder** — there is no separate
+`docs/planning/` backlog. (This folder holds only this workflow README.)
+
 - `plans/<Monday>_<Friday>/` — the **sprint folder**, named for the current Mon→Fri week
   (e.g. `plans/2026-10-05_2026-10-09`). It contains:
   - `goal.md` — the product-owner's goal summary + open questions. Written **first**; every open
     question must be resolved and the human must approve it **before** features are separated.
+  - `features.md` — the product backlog (feature IDs `F1`, `F2`, …).
+  - `architecture.md` — the system design (entities, indexes, API contracts, module map).
   - one sub-folder per task — `plans/<sprint>/<N>. <Task title>/`, e.g. `1. Implement create user api`:
     - `description.txt` — the product spec (the WHAT). **Owned by `product-owner`** — only it may
       edit this file. Any other agent needs the **developer's** confirmation before a change is

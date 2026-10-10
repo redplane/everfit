@@ -13,8 +13,9 @@ The requirement to analyze is whatever the user passes in the prompt (inline tex
 file path, or a reference to `docs/requirement.md`). If no requirement is given, ask the user for it
 before doing anything else.
 
-The flow is always: **delegate → surface open questions → get human answers → finalize**. Never
-let the product-owner guess an answer, and never proceed past open questions on assumption.
+The flow is always: **delegate → summarize the goal → surface open questions (in the file) → get
+human answers → finalize**. Never let the product-owner guess an answer, and never proceed past open
+questions on assumption.
 
 ## 1. Gather the requirement
 
@@ -33,27 +34,41 @@ prompt that:
 - Includes the requirement to analyze (the text or the file reference from step 1).
 - Asks it to produce its `goal.md` — goal summary, scope & assumptions, and the **open questions**
   checklist — per its own instructions.
-- Explicitly instructs it to **stop at the open-questions gate**: list every genuine ambiguity and
-  return them to you rather than resolving them itself or inventing answers. The product-owner must
-  **not** separate the feature list or create task folders yet.
+- Explicitly instructs it to **stop at the open-questions gate**: write every genuine ambiguity as a
+  numbered **open-questions checklist inside `goal.md`** rather than resolving them itself or
+  inventing answers. The product-owner must **not** separate the feature list or create task folders
+  yet.
 
-Relay back the goal summary and the full list of open questions the agent surfaces.
+## 3. Summarize the goal, then point the human at the questions in the file
 
-## 3. Get every open question answered by a human
+Before asking anything, **first give the human a concise summary of the goal** so they know what the
+requirement is about — the goal statement, scope, and key assumptions the product-owner captured.
+This orients the human before they weigh in on any ambiguity.
+
+Then surface the open questions **as they are written in `goal.md`** — the questions live in the
+file, and the human answers against that list. Tell the human where `goal.md` is and relay the
+numbered open-questions checklist from it so they can respond question-by-question.
+
+## 4. Get every open question answered by a human
 
 This is the core guarantee of this skill: **all open questions must be answered by a human.**
 
-- Present the open questions to the user clearly. Prefer the **AskUserQuestion** tool so each
-  question is an explicit prompt the human answers (use multiple questions / multi-select as
-  needed); fall back to a direct numbered question list if the questions don't fit that format.
+- The human answers the numbered open questions from `goal.md` directly. Do not reformat them into
+  the AskUserQuestion tool — keep them as the in-file checklist and let the human respond to the list.
+- **Record each answer in `goal.md` as soon as it arrives.** Whenever the human answers one or more
+  questions, have the product-owner immediately update `goal.md` — write the answer inline under the
+  question and flip its box from `- [ ]` to `- [x]` — before moving on. Do this incrementally, not
+  only at the end, so the human can reopen `goal.md` at any time and see which questions are still
+  open. (The human need not answer all ten at once; partial answers are recorded as they come.)
 - Do **not** answer any open question yourself, and do **not** let the product-owner assume a
-  default. If the user's answer raises new questions, loop back and ask those too.
+  default. If the user's answer raises new questions, add them to the checklist in `goal.md` and ask
+  those too.
 - Keep going until **zero** open questions remain.
 
 If the product-owner reports there are no open questions, confirm that explicitly with the user
 before moving on.
 
-## 4. Finalize the analysis
+## 5. Finalize the analysis
 
 Once every open question has a human answer, send the answers back to the product-owner agent (same
 agent, continue it via SendMessage so it keeps its context) and have it:
@@ -63,7 +78,7 @@ agent, continue it via SendMessage so it keeps its context) and have it:
 - Only then proceed with the rest of its workflow (feature list, task folders) if the user wants
   that — otherwise stop at an approved `goal.md`.
 
-## 5. Report back
+## 6. Report back
 
 Summarize for the user: the goal, where `goal.md` was written, every open question with its
 human-provided answer, and the current state (goal approved / features defined / stopped at goal).

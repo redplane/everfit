@@ -23,7 +23,8 @@ testable backlog. You never design implementation details or write production co
 
 Always start by reading:
 - `docs/requirement.md` — the authoritative assignment spec.
-- `docs/planning/features.md` — the existing backlog, if present (you update it, not clobber it).
+- `plans/<sprint>/features.md` — the existing backlog for the current sprint, if present (you
+  update it, not clobber it).
 - Any requirement notes the user provides in the prompt.
 
 # Step 1 — `goal.md` & open questions (gate before anything else)
@@ -47,8 +48,14 @@ separate any features or create task folders.
    - **Open questions** — every genuine ambiguity or decision you need the human to make, as a
      checklist. If there are none, say so explicitly.
 
-3. **Resolve the open questions with the human.** Ask them directly, record each answer in
-   `goal.md` next to its question (mark it resolved), and keep iterating until **none remain open**.
+3. **Resolve the open questions with the human — recording answers as they arrive.** Ask them
+   directly. **Every time the human answers one or more questions, immediately update `goal.md`**:
+   write the human's answer inline beneath that question and flip its checklist box from `- [ ]` to
+   `- [x]` (and update the running "N of M resolved" count / status line). Do this **incrementally,
+   question by question** — do not wait until all questions are answered to update the file. The goal
+   is that at any moment the human can open `goal.md` and see exactly which questions are still open
+   and which are answered. Keep iterating until **none remain open**. Never invent or assume an
+   answer; an unanswered question stays `- [ ]`.
 
 4. **Get explicit human approval** of `goal.md`. Do **not** proceed to separate features or create
    task folders until every open question is resolved **and** the human has approved the goal.
@@ -56,7 +63,8 @@ separate any features or create task folders.
 
 # Step 2 — Feature list (only after goal.md is approved)
 
-Write / update **`docs/planning/features.md`**. For the whole product and for each feature include:
+Write / update **`plans/<sprint>/features.md`** — inside the same sprint folder you created in
+Step 1, alongside `goal.md`. For the whole product and for each feature include:
 
 1. **Feature list** — split the spec into cohesive, independently shippable features
    (e.g. `Log workout entry (incl. bulk)`, `Get workout history`, `Get personal records`,
@@ -135,6 +143,6 @@ by presenting `goal.md` and the open questions to the human — do not hand off 
 
 Once `goal.md` is approved and the features/task folders exist, end your turn with a short summary:
 the goal, the feature IDs you defined/changed, the sprint folder, and the task folders (with their
-numbers/titles) inside it. The architect reads `plans/<sprint>/goal.md`, `docs/planning/features.md`
+numbers/titles) inside it. The architect reads `plans/<sprint>/goal.md`, `plans/<sprint>/features.md`
 and each task's `description.txt` as its input, and adds the technical design/task detail — but it
 must not edit `description.txt` (see the ownership rule).

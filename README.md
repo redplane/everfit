@@ -96,6 +96,54 @@ pnpm migration:revert
 > These scripts run the TypeScript-aware TypeORM CLI (`typeorm-ts-node-commonjs`) against
 > `apps/api/src/data-source.ts`, which loads env from `.env.api`.
 
+## Database CLI (reset & seed)
+
+A developer CLI (`apps/api/src/cli/database-cli.ts`, run as a NestJS standalone application context)
+resets the database and seeds master data plus a **large workout dataset** (50,000+ workout entries
+by default) so query/aggregation performance can be demonstrated at scale. It reuses the same env and
+TypeORM wiring as the app (`.env.api` / `.env.api.local`, `DATABASE__*`) and the same core services,
+so seeded data obeys every model rule (row-per-set, UTC `performed_at`, normalized `weight_kg` via
+the unit registry, the `(user_id, exercise_id, performed_at, set_number)` unique key, and the unique
+exercise↔muscle-group mapping).
+
+> **Run migrations first** (`pnpm migration:run`) — the CLI only reads/clears **data**; it never
+> creates or drops schema and never touches the `migrations` table.
+
+Commands (via the `pnpm` scripts or the Nx target directly):
+
+```sh
+# Reset (clears all domain data) — requires confirmation, so a prod DB is not wiped by accident
+pnpm db:reset                                   # = nx run api:db-cli -- reset --yes
+
+# Seed master data + the large workout dataset (expects a clean DB; run reset first)
+pnpm db:seed                                    # = nx run api:db-cli -- seed
+
+# Reset then seed in one go (recommended for the demo)
+pnpm db:reset-seed                              # = nx run api:db-cli -- reset-seed --yes
+
+# Overridable flags (pass after `--`):
+nx run api:db-cli -- seed --count 100000 --batch-size 5000 --user <uuid>
+```
+
+| Command      | Effect                                                                        |
+| ------------ | ----------------------------------------------------------------------------- |
+| `reset`      | Deletes all rows child-first in FK-safe order, in one transaction. **Requires `--yes` / `--force`.** |
+| `seed`       | Creates users, exercises, muscle groups + mappings, then bulk-inserts the workout dataset for a demo user. |
+| `reset-seed` | `reset` then `seed`. **Requires `--yes` / `--force`.**                         |
+
+Options:
+
+| Flag           | Default  | Purpose                                                            |
+| -------------- | -------- | ----------------------------------------------------------------- |
+| `--yes`/`--force` | —     | Required confirmation for the destructive `reset` / `reset-seed`. |
+| `--count`      | `50000`  | Number of workout entries to generate (positive integer).         |
+| `--batch-size` | `2000`   | Rows per bulk `INSERT` chunk (positive integer).                  |
+| `--user`       | demo user | Existing user id to receive the seeded workouts.                 |
+
+> **Re-run safety:** `seed` expects a clean database — re-running it without a reset collides on the
+> unique exercise/muscle-group names and the generated `performed_at`s. Use `reset-seed` (or run
+> `reset` first) to re-seed. No new environment variables are introduced; the CLI reuses `DATABASE__*`.
+
 ## Time & timezone
 
 All instants are stored in UTC (`timestamptz`). Business code obtains the current time from an

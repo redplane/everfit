@@ -52,6 +52,14 @@
       "options": {
         "passWithNoTests": true
       }
+    },
+    "db-cli": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "command": "ts-node --transpile-only --project apps/api/tsconfig.app.json apps/api/src/cli/database-cli.ts",
+        "cwd": "{workspaceRoot}"
+      }
     }
   }
 }

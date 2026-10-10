@@ -115,6 +115,9 @@ export class SeedService implements ISeedService {
 
       for (const muscleGroupName of definition.muscleGroups) {
         const muscleGroupId = muscleGroupIdByName.get(muscleGroupName);
+        // Defensive/unreachable consistency check: every name in SEED_EXERCISES.muscleGroups also
+        // appears in SEED_MUSCLE_GROUPS, so this branch cannot be hit with the shipped config (left
+        // uncovered by design — it only guards against a future edit desyncing the two constants).
         if (muscleGroupId === undefined) {
           throw new Error(`Seed misconfiguration: unknown muscle group "${muscleGroupName}".`);
         }

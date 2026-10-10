@@ -9,10 +9,11 @@ import { SeedWorkoutsOptions } from '../../models/seed-workouts-options';
 export interface ISeedService {
   //#region Methods
   /**
-   * Clears all domain data to a clean state — data only, never the schema or the migrations table.
-   * Deletes child-first in FK-safe order (`workout_sets` → `workout_entries` →
-   * `exercise_muscle_groups` → `exercises` → `muscle_groups` → `users`) inside a single transaction,
-   * so it leaves an empty database with every table at zero rows. Safe to run on an already-empty DB.
+   * Clears all domain data to a clean state — data only; the schema and the `migrations` table are
+   * untouched. Truncates each domain table child-first in FK-safe order (`workout_sets` →
+   * `workout_entries` → `exercise_muscle_groups` → `exercises` → `muscle_groups` → `users`) with a
+   * per-table `TRUNCATE ... CASCADE`, leaving every table at zero rows. Each `TRUNCATE` autocommits
+   * (there is no wrapping transaction). Safe to run on an already-empty DB.
    */
   resetAsync(): Promise<void>;
 

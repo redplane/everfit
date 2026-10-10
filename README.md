@@ -127,7 +127,7 @@ nx run api:db-cli -- seed --count 100000 --batch-size 5000 --user <uuid>
 
 | Command      | Effect                                                                        |
 | ------------ | ----------------------------------------------------------------------------- |
-| `reset`      | Deletes all rows child-first in FK-safe order, in one transaction. **Requires `--yes` / `--force`.** |
+| `reset`      | Truncates each domain table child-first with `TRUNCATE ... CASCADE` (data only; schema and the `migrations` table are untouched). **Requires `--yes` / `--force`.** |
 | `seed`       | Creates users, exercises, muscle groups + mappings, then bulk-inserts the workout dataset for a demo user. |
 | `reset-seed` | `reset` then `seed`. **Requires `--yes` / `--force`.**                         |
 

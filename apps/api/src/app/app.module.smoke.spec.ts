@@ -15,6 +15,8 @@ const SEED_EXERCISE_ID = '018f6b0a-0000-7000-8000-0000000000a1';
 const SEED_ENTRY_1_ID = '018f6b0a-0000-7000-8000-000000000b01';
 const SEED_ENTRY_2_ID = '018f6b0a-0000-7000-8000-000000000b02';
 const UNKNOWN_USER_ID = '018f6b0a-0000-7000-8000-0000000000ee';
+const UNKNOWN_EXERCISE_ID = '018f6b0a-0000-7000-8000-0000000000ef';
+const PR_EXERCISE_NO_SETS_ID = '018f6b0a-0000-7000-8000-0000000000a2';
 
 /**
  * Bootstrap / wiring smoke test. It composes the REAL `AppModule` exactly as `main.ts` does
@@ -26,7 +28,7 @@ const UNKNOWN_USER_ID = '018f6b0a-0000-7000-8000-0000000000ee';
  * live Postgres is required in CI.
  */
 async function createInMemoryDataSource(
-  options: { seedWorkoutRefs?: boolean; seedHistory?: boolean } = {},
+  options: { seedWorkoutRefs?: boolean; seedHistory?: boolean; seedPersonalRecords?: boolean } = {},
 ): Promise<DataSource> {
   const db = newDb();
 
@@ -127,6 +129,29 @@ async function createInMemoryDataSource(
       VALUES
         ('018f6b0a-0000-7000-8000-000000000c01', '${SEED_ENTRY_1_ID}', '${SEED_USER_ID}', '${SEED_EXERCISE_ID}', '2026-10-01T10:00:00.000Z', 1, 8, 100, 'kg', 100, now()),
         ('018f6b0a-0000-7000-8000-000000000c02', '${SEED_ENTRY_2_ID}', '${SEED_USER_ID}', '${SEED_EXERCISE_ID}', '2026-10-02T10:00:00.000Z', 1, 5, 120, 'kg', 120, now());
+    `);
+  }
+
+  // Seed a user + an exercise with a few sets (distinct winners for each metric) plus a second
+  // exercise with NO sets, so the personal-record route (F7) can be probed end to end: a happy path,
+  // the empty-not-error case (known exercise, no sets -> null metrics), and the unknown-exercise 404.
+  if (options.seedPersonalRecords) {
+    db.public.none(`
+      INSERT INTO users (id, name, created_time)
+      VALUES ('${SEED_USER_ID}', 'PR User', now());
+      INSERT INTO exercises (id, name, created_time)
+      VALUES
+        ('${SEED_EXERCISE_ID}', 'Bench Press', now()),
+        ('${PR_EXERCISE_NO_SETS_ID}', 'Deadlift', now());
+      INSERT INTO workout_entries (id, user_id, exercise_id, performed_at, created_time)
+      VALUES
+        ('${SEED_ENTRY_1_ID}', '${SEED_USER_ID}', '${SEED_EXERCISE_ID}', '2026-10-01T10:00:00.000Z', now()),
+        ('${SEED_ENTRY_2_ID}', '${SEED_USER_ID}', '${SEED_EXERCISE_ID}', '2026-10-02T10:00:00.000Z', now());
+      INSERT INTO workout_sets
+        (id, workout_entry_id, user_id, exercise_id, performed_at, set_number, reps, weight, unit, weight_kg, created_time)
+      VALUES
+        ('018f6b0a-0000-7000-8000-000000000d01', '${SEED_ENTRY_1_ID}', '${SEED_USER_ID}', '${SEED_EXERCISE_ID}', '2026-10-01T10:00:00.000Z', 1, 2, 130, 'kg', 130, now()),
+        ('018f6b0a-0000-7000-8000-000000000d02', '${SEED_ENTRY_2_ID}', '${SEED_USER_ID}', '${SEED_EXERCISE_ID}', '2026-10-02T10:00:00.000Z', 1, 12, 90, 'kg', 90, now());
     `);
   }
 
@@ -451,6 +476,128 @@ describe('AppModule (bootstrap smoke) — workout history (F6)', () => {
   it('does NOT mount the double-prefixed path /api/api/workout-history', async () => {
     const response = await fetch(
       `${baseUrl}/api/api/workout-history?userId=${SEED_USER_ID}&unit=kg`,
+    );
+
+    expect(response.status).toBe(404);
+  });
+});
+
+/**
+ * Personal records (F7) boots its own app over a seeded in-memory DataSource (a user + an exercise
+ * with two sets + a second exercise with no sets), proving the real module graph composes the
+ * controller → PR-query orchestration → core user/exercise/scale-unit/workout services, that the route
+ * is mounted at /api/personal-record, that the three metrics aggregate correctly with their
+ * achievement dates, and that the required-unit / unknown-user / unknown-exercise / empty-not-error
+ * rules hold end to end.
+ */
+describe('AppModule (bootstrap smoke) — personal records (F7)', () => {
+  let app: INestApplication;
+  let dataSource: DataSource;
+  let baseUrl: string;
+
+  beforeAll(async () => {
+    process.env.NODE_ENV = 'test';
+    process.env.DATABASE__HOST = 'localhost';
+    process.env.DATABASE__USERNAME = 'test';
+    process.env.DATABASE__PASSWORD = 'test';
+    process.env.DATABASE__NAME = 'test';
+    process.env.API_DOCUMENT__ENABLED = 'false';
+
+    dataSource = await createInMemoryDataSource({ seedPersonalRecords: true });
+
+    const { AppModule } = await import('./app.module');
+
+    const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(getDataSourceToken())
+      .useValue(dataSource)
+      .compile();
+
+    app = moduleRef.createNestApplication();
+    app.setGlobalPrefix('api');
+    await app.init();
+    await app.listen(0, '127.0.0.1');
+    baseUrl = await app.getUrl();
+  });
+
+  afterAll(async () => {
+    await app?.close();
+    if (dataSource?.isInitialized) {
+      await dataSource.destroy();
+    }
+  });
+
+  it('serves the three personal records at /api/personal-record (200, correct winners + dates)', async () => {
+    const response = await fetch(
+      `${baseUrl}/api/personal-record?userId=${SEED_USER_ID}&exerciseId=${SEED_EXERCISE_ID}&unit=kg`,
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.unit).toBe('kg');
+    // Heaviest set: 130 kg on 2026-10-01.
+    expect(body.maxWeight.weight).toBe(130);
+    expect(body.maxWeight.achievedAt).toContain('2026-10-01');
+    // Highest volume: 12 × 90 = 1080 on 2026-10-02.
+    expect(body.maxVolume.volume).toBe(1080);
+    expect(body.maxVolume.achievedAt).toContain('2026-10-02');
+    // Best Epley 1RM: 130 × (1 + 2/30) ≈ 138.67.
+    expect(body.best1Rm.oneRepMax).toBeCloseTo(138.67, 1);
+  });
+
+  it('converts weight-scaled values to the requested unit (lb)', async () => {
+    const response = await fetch(
+      `${baseUrl}/api/personal-record?userId=${SEED_USER_ID}&exerciseId=${SEED_EXERCISE_ID}&unit=lb`,
+    );
+
+    const body = await response.json();
+    expect(body.unit).toBe('lb');
+    // 130 kg -> ~286.6 lb.
+    expect(body.maxWeight.weight).toBeCloseTo(286.6, 1);
+  });
+
+  it('returns 200 with all-null metrics for a known exercise with no sets (empty-not-error)', async () => {
+    const response = await fetch(
+      `${baseUrl}/api/personal-record?userId=${SEED_USER_ID}&exerciseId=${PR_EXERCISE_NO_SETS_ID}&unit=kg`,
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.maxWeight).toBeNull();
+    expect(body.maxVolume).toBeNull();
+    expect(body.best1Rm).toBeNull();
+  });
+
+  it('returns 400 when the required `unit` is omitted', async () => {
+    const response = await fetch(
+      `${baseUrl}/api/personal-record?userId=${SEED_USER_ID}&exerciseId=${SEED_EXERCISE_ID}`,
+    );
+
+    expect(response.status).toBe(400);
+  });
+
+  it('returns 404 USER_NOT_FOUND for an unknown user', async () => {
+    const response = await fetch(
+      `${baseUrl}/api/personal-record?userId=${UNKNOWN_USER_ID}&exerciseId=${SEED_EXERCISE_ID}&unit=kg`,
+    );
+
+    expect(response.status).toBe(404);
+    const body = await response.json();
+    expect(body.code).toBe('USER_NOT_FOUND');
+  });
+
+  it('returns 404 EXERCISE_NOT_FOUND for an unknown exercise', async () => {
+    const response = await fetch(
+      `${baseUrl}/api/personal-record?userId=${SEED_USER_ID}&exerciseId=${UNKNOWN_EXERCISE_ID}&unit=kg`,
+    );
+
+    expect(response.status).toBe(404);
+    const body = await response.json();
+    expect(body.code).toBe('EXERCISE_NOT_FOUND');
+  });
+
+  it('does NOT mount the double-prefixed path /api/api/personal-record', async () => {
+    const response = await fetch(
+      `${baseUrl}/api/api/personal-record?userId=${SEED_USER_ID}&exerciseId=${SEED_EXERCISE_ID}&unit=kg`,
     );
 
     expect(response.status).toBe(404);

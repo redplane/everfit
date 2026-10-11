@@ -7,7 +7,8 @@ import { WorkoutHistoryQueryServiceInjectionTokens } from './services/workout-hi
 import { GetWorkoutHistoryQueryDto } from './dto/get-workout-history-query.dto';
 import { getWorkoutHistoryQueryJoiSchema } from './dto/get-workout-history-query.joi-schema';
 import { WorkoutHistoryItemDto } from './dto/workout-history-item.dto';
-import { SearchResult } from '../../../common/models/search-result';
+import { WorkoutHistorySearchResultDto } from './dto/workout-history-search-result.dto';
+import { ICursorSearchResult } from '../../../common/models/cursor-search-result';
 
 @ApiTags('Workouts')
 // The global prefix `api` is applied in main.ts (setGlobalPrefix), so the controller path must NOT
@@ -29,10 +30,11 @@ export class WorkoutHistoryApiController {
   @ApiOperation({ summary: 'Get workout history' })
   @ApiOkResponse({
     description: 'A cursor-paginated page of the user’s workout history, weights in the requested unit.',
+    type: WorkoutHistorySearchResultDto,
   })
   public async searchAsync(
     @Query() query: GetWorkoutHistoryQueryDto,
-  ): Promise<SearchResult<WorkoutHistoryItemDto>> {
+  ): Promise<ICursorSearchResult<WorkoutHistoryItemDto>> {
     // 2. Validate request (shape & types) — required userId + unit, optional filters, cursor/limit.
     const instance = await this.__joiService.validateAsync(query, getWorkoutHistoryQueryJoiSchema);
 

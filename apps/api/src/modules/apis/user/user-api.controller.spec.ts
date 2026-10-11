@@ -144,6 +144,22 @@ describe('UserApiController', () => {
       expect(result.items).toEqual([]);
       expect(result.total).toBe(5);
     });
+
+    // F6 — offset endpoints keep their contract: the response MUST carry both `total` and `offset`
+    // (the half of the pagination rule that cursor endpoints omit). Guards against accidental drift.
+    it('includes both the total and offset keys in the offset response body', async () => {
+      userService.searchResult = {
+        items: [buildUser(EXISTING_ID, 'Alice')],
+        limit: 20,
+        offset: 0,
+        total: 1,
+      };
+
+      const result = await controller.searchAsync({ limit: 20, offset: 0 } as GetUsersQueryDto);
+
+      expect(Object.prototype.hasOwnProperty.call(result, 'total')).toBe(true);
+      expect(Object.prototype.hasOwnProperty.call(result, 'offset')).toBe(true);
+    });
   });
   //#endregion
 });

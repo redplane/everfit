@@ -252,6 +252,56 @@ describe('WorkoutHistoryQueryService', () => {
       expect(result.items).toEqual([]);
       expect(result.nextCursor).toBeNull();
     });
+
+    // F6 — cursor-pagination response-shape compliance: a cursor response MUST expose exactly
+    // items/limit/nextCursor and MUST NOT carry `total`/`offset` keys (asserted absent, not just
+    // undefined-valued).
+    it('exposes exactly items/limit/nextCursor and no total/offset on a populated page with more rows (hasMore true)', async () => {
+      workoutService.page = {
+        items: [entryWithSet(ENTRY_1, EXERCISE_A, DAY_1, 100, 100, 'kg')],
+        hasMore: true,
+      };
+
+      const result = await service.searchAsync(query());
+
+      expect(Object.keys(result).sort()).toEqual(['items', 'limit', 'nextCursor'].sort());
+      expect('total' in result).toBe(false);
+      expect('offset' in result).toBe(false);
+    });
+
+    it('exposes exactly items/limit/nextCursor and no total/offset on the last page (hasMore false)', async () => {
+      workoutService.page = {
+        items: [entryWithSet(ENTRY_1, EXERCISE_A, DAY_1, 100, 100, 'kg')],
+        hasMore: false,
+      };
+
+      const result = await service.searchAsync(query());
+
+      expect(Object.keys(result).sort()).toEqual(['items', 'limit', 'nextCursor'].sort());
+      expect(result.nextCursor).toBeNull();
+      expect('total' in result).toBe(false);
+      expect('offset' in result).toBe(false);
+    });
+
+    it('exposes exactly items/limit/nextCursor and no total/offset for a known user with no rows (empty page)', async () => {
+      workoutService.page = { items: [], hasMore: false };
+
+      const result = await service.searchAsync(query());
+
+      expect(Object.keys(result).sort()).toEqual(['items', 'limit', 'nextCursor'].sort());
+      expect('total' in result).toBe(false);
+      expect('offset' in result).toBe(false);
+    });
+
+    it('exposes exactly items/limit/nextCursor and no total/offset when a filter resolves to an empty id set (filtered-to-empty)', async () => {
+      exerciseService.nameIds = [];
+
+      const result = await service.searchAsync(query({ exerciseName: 'nope' }));
+
+      expect(Object.keys(result).sort()).toEqual(['items', 'limit', 'nextCursor'].sort());
+      expect('total' in result).toBe(false);
+      expect('offset' in result).toBe(false);
+    });
   });
   //#endregion
 });

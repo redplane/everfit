@@ -1,0 +1,64 @@
+TASK 11 — Cursor pagination response-shape compliance
+
+Feature IDs: F6 (compliance/refactor; cross-cutting)
+Depends on: Task 6 (Get workout history). Independent of Tasks 2/3 (offset lists) —
+  they are only touched to confirm they stay unchanged.
+
+User story / rationale
+  As an API consumer, I want cursor-paginated (infinite-scroll) endpoints to return
+  only the page of items plus the cursor metadata needed to fetch the next page — and
+  NOT a total count — so that the response envelope is consistent, predictable, and the
+  back end never pays for an expensive, stale full-count on large, append-heavy tables.
+  This enforces the project convention in docs/guidelines/best-practices/pagination.md
+  (cross-referenced from .../nestjs/api.md §3.1). The pagination rule itself is already
+  decided and approved; this task only brings the codebase into verified compliance.
+
+Acceptance criteria
+  - Every cursor-paginated endpoint returns ONLY the list of items plus the cursor
+    metadata already modeled (nextCursor, null/absent on the last page; it also carries
+    the served limit). It MUST NOT return a `total`.
+  - GET /api/workout-history (the only cursor-paginated endpoint today) conforms: its
+    response contains items, limit, and nextCursor, and never a `total` field —
+    including on the empty-result, last-page, and filtered-to-empty paths.
+  - Offset/page-paginated endpoints are left UNCHANGED and continue to return both
+    `items` and `total` (plus limit/offset): GET /api/users, the exercise list, and the
+    muscle-group list keep their current contract.
+  - The response contract is enforced, not merely incidental: cursor-endpoint tests
+    assert the `total` key is absent (not just undefined-valued) from the response body,
+    so a future regression that re-adds a count is caught.
+  - The OpenAPI/Scalar response schema for cursor endpoints advertises only items +
+    nextCursor + limit (no total), matching the shape actually returned; the offset
+    endpoints' documented schema still shows total.
+  - The shared SearchResult<T> envelope and its doc comments continue to describe the
+    two styles correctly (offset -> offset+total; cursor -> nextCursor, total unset);
+    any guard-rail that prevents a cursor response from carrying total is acceptable but
+    not required to change the shared type if tests already lock the behavior.
+
+Edge cases
+  - Empty page (known user, no matching rows), last page (nextCursor null), and
+    filtered-to-empty (resolved-but-empty exercise-id set) must all omit `total` and
+    still be 200 with an empty/short item list — never an error.
+  - A malformed cursor remains a 400 validation error (unchanged); this task does not
+    alter cursor decoding behavior.
+  - No change to ordering, limit bounds (1..100, default 20), or keyset semantics.
+
+Out of scope / assumptions
+  - Does NOT change which endpoints use cursor vs offset pagination, nor convert any
+    offset endpoint to cursor (or vice versa).
+  - Does NOT reopen or modify the pagination rule itself — it is approved.
+  - Does NOT add a `total` to cursor endpoints under any option/flag.
+  - No new endpoints, filters, or query parameters.
+  - Assumes the only cursor-paginated endpoint in the current codebase is
+    GET /api/workout-history; offset endpoints are users, exercises, and muscle groups.
+
+Notes
+  - Investigation finding: GET /api/workout-history already returns
+    { items, limit, nextCursor } with no `total` (see
+    workout-history-query.service.ts searchAsync + __emptyResult), so it appears
+    compliant today. The primary deliverable of this task is therefore to LOCK that
+    contract with explicit "no total" assertions, align the documented response schema,
+    and add a guard-rail against regression — rather than a large refactor. If any
+    cursor endpoint is found carrying `total`, strip it per the criteria above.
+  - description.txt is product-owner-owned (api.md ownership rule). Any change to this
+    file must be requested and confirmed with the developer, then applied by the
+    product-owner, with a note recorded here.

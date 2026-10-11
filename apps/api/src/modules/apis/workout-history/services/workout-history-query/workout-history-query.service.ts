@@ -16,7 +16,7 @@ import { WorkoutServiceInjectionTokens } from '../../../../cores/workout/service
 import { WorkoutEntryEntity } from '../../../../cores/workout/entities/workout-entry.entity';
 import { WorkoutSetEntity } from '../../../../cores/workout/entities/workout-set.entity';
 import { WorkoutHistorySearchCriteria } from '../../../../../models/criteria/workout-history-search-criteria';
-import { SearchResult } from '../../../../../common/models/search-result';
+import { ICursorSearchResult } from '../../../../../common/models/cursor-search-result';
 import { ValidationException } from '../../../../../common/exceptions/validation.exception';
 import { ValidationIssue } from '../../../../../common/models/validation-issue';
 
@@ -38,7 +38,7 @@ export class WorkoutHistoryQueryService implements IWorkoutHistoryQueryService {
   //#region Methods
   public async searchAsync(
     query: GetWorkoutHistoryQueryDto,
-  ): Promise<SearchResult<WorkoutHistoryItemDto>> {
+  ): Promise<ICursorSearchResult<WorkoutHistoryItemDto>> {
     // 4a. Domain check — the user must exist.
     const userExists = await this.__userService.existsByIdAsync(query.userId);
     if (!userExists) {
@@ -160,7 +160,7 @@ export class WorkoutHistoryQueryService implements IWorkoutHistoryQueryService {
   }
 
   /** Builds an empty result (no items, no next cursor) that still echoes the served `limit`. */
-  private __emptyResult(limit: number): SearchResult<WorkoutHistoryItemDto> {
+  private __emptyResult(limit: number): ICursorSearchResult<WorkoutHistoryItemDto> {
     return { items: [], limit, nextCursor: null };
   }
   //#endregion

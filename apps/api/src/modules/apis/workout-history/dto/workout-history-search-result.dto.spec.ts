@@ -1,5 +1,6 @@
 import { WorkoutHistorySearchResultDto } from './workout-history-search-result.dto';
 import { WorkoutHistoryItemDto } from './workout-history-item.dto';
+import { ICursorSearchResult } from '../../../../common/models/cursor-search-result';
 
 function sampleItem(): WorkoutHistoryItemDto {
   return new WorkoutHistoryItemDto(
@@ -30,6 +31,15 @@ describe('WorkoutHistorySearchResultDto', () => {
       expect(instance.items).toBe(items);
       expect(instance.limit).toBe(50);
       expect(instance.nextCursor).toBeNull();
+    });
+
+    it('conforms to ICursorSearchResult<WorkoutHistoryItemDto> at compile time', () => {
+      // Compile-time guard: if a `total`/`offset` field is ever added to the DTO (or the cursor
+      // envelope gains one), this assignment stops type-checking and the build fails.
+      const conforming: ICursorSearchResult<WorkoutHistoryItemDto> =
+        new WorkoutHistorySearchResultDto([sampleItem()], 20, 'next-cursor');
+
+      expect(Object.keys(conforming).sort()).toEqual(['items', 'limit', 'nextCursor'].sort());
     });
   });
   //#endregion

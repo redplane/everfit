@@ -38,7 +38,10 @@ There are two pagination styles:
 
 ## 4. Note for this NestJS project
 
-- Both styles share the one wire envelope `SearchResult<T>`
-  (`src/common/models/search-result.ts`): offset lists populate `offset` + `total`; cursor lists
-  populate `nextCursor` and leave `total` unset. See the REST-shape rules in
-  `../typescript/frameworks/nestjs/api.md` §3.1.
+- The two styles use **two distinct wire envelopes** under `src/common/models/`, so each type carries
+  exactly its meaningful metadata and a cursor response **cannot** structurally carry a `total`:
+  - **Offset** lists return `SearchResult<T>` (`src/common/models/search-result.ts`):
+    `{ items, limit, offset?, total? }`.
+  - **Cursor** lists return `ICursorSearchResult<T>` (`src/common/models/cursor-search-result.ts`):
+    `{ items, limit, nextCursor }` — no `total`, no `offset`.
+  See the REST-shape rules in `../typescript/frameworks/nestjs/api.md` §3.1.

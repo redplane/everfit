@@ -1,16 +1,20 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { WorkoutHistoryItemDto } from './workout-history-item.dto';
+import { ICursorSearchResult } from '../../../../common/models/cursor-search-result';
 
 /**
  * Documentation response projection for the cursor-paginated workout-history endpoint (F6).
  *
  * This advertises the exact cursor shape — `items` + the served `limit` + a `nextCursor` — and
  * deliberately omits `total` and `offset`. Per `docs/guidelines/best-practices/pagination.md` §II.2,
- * a cursor-paginated response MUST NOT carry a `total` count. The controller returns the shared
- * `SearchResult<T>` envelope (structurally compatible); this DTO exists so the OpenAPI/Scalar schema
- * shows only the fields a cursor client receives.
+ * a cursor-paginated response MUST NOT carry a `total` count. It `implements`
+ * `ICursorSearchResult<WorkoutHistoryItemDto>` so the documented shape is kept in lock-step with the
+ * cursor wire envelope the controller returns; this DTO exists so the OpenAPI/Scalar schema shows
+ * only the fields a cursor client receives.
  */
-export class WorkoutHistorySearchResultDto {
+export class WorkoutHistorySearchResultDto
+  implements ICursorSearchResult<WorkoutHistoryItemDto>
+{
   //#region Properties
   @ApiProperty({ description: 'The page of workout-history entries.', type: () => [WorkoutHistoryItemDto] })
   public items: WorkoutHistoryItemDto[];

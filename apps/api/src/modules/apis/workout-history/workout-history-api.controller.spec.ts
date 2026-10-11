@@ -4,20 +4,24 @@ import { GetWorkoutHistoryQueryDto } from './dto/get-workout-history-query.dto';
 import { WorkoutHistoryItemDto } from './dto/workout-history-item.dto';
 import { JoiService } from '../../../common/services/joi/joi.service';
 import { ValidationException } from '../../../common/exceptions/validation.exception';
-import { SearchResult } from '../../../common/models/search-result';
+import { ICursorSearchResult } from '../../../common/models/cursor-search-result';
 import { UserByIdNotFoundException } from '../../cores/user/exceptions/user-by-id-not-found.exception';
 
 const USER_ID = '018f6b0a-0000-7000-8000-000000000001';
 const MUSCLE_GROUP_ID = '018f6b0a-0000-7000-8000-0000000000c1';
 
 class StubWorkoutHistoryQueryService implements IWorkoutHistoryQueryService {
-  public result: SearchResult<WorkoutHistoryItemDto> = { items: [], limit: 20, nextCursor: null };
+  public result: ICursorSearchResult<WorkoutHistoryItemDto> = {
+    items: [],
+    limit: 20,
+    nextCursor: null,
+  };
   public error?: Error;
   public lastQuery?: GetWorkoutHistoryQueryDto;
 
   public searchAsync(
     query: GetWorkoutHistoryQueryDto,
-  ): Promise<SearchResult<WorkoutHistoryItemDto>> {
+  ): Promise<ICursorSearchResult<WorkoutHistoryItemDto>> {
     this.lastQuery = query;
     if (this.error) {
       return Promise.reject(this.error);
@@ -116,9 +120,9 @@ describe('WorkoutHistoryApiController', () => {
 
       const result = await controller.searchAsync(validQuery());
 
+      expect(Object.keys(result).sort()).toEqual(['items', 'limit', 'nextCursor'].sort());
       expect('total' in result).toBe(false);
-      expect(Object.prototype.hasOwnProperty.call(result, 'total')).toBe(false);
-      expect('items' in result && 'limit' in result && 'nextCursor' in result).toBe(true);
+      expect('offset' in result).toBe(false);
     });
   });
   //#endregion

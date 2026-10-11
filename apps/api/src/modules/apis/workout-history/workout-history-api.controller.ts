@@ -8,7 +8,7 @@ import { GetWorkoutHistoryQueryDto } from './dto/get-workout-history-query.dto';
 import { getWorkoutHistoryQueryJoiSchema } from './dto/get-workout-history-query.joi-schema';
 import { WorkoutHistoryItemDto } from './dto/workout-history-item.dto';
 import { WorkoutHistorySearchResultDto } from './dto/workout-history-search-result.dto';
-import { SearchResult } from '../../../common/models/search-result';
+import { ICursorSearchResult } from '../../../common/models/cursor-search-result';
 
 @ApiTags('Workouts')
 // The global prefix `api` is applied in main.ts (setGlobalPrefix), so the controller path must NOT
@@ -34,7 +34,7 @@ export class WorkoutHistoryApiController {
   })
   public async searchAsync(
     @Query() query: GetWorkoutHistoryQueryDto,
-  ): Promise<SearchResult<WorkoutHistoryItemDto>> {
+  ): Promise<ICursorSearchResult<WorkoutHistoryItemDto>> {
     // 2. Validate request (shape & types) — required userId + unit, optional filters, cursor/limit.
     const instance = await this.__joiService.validateAsync(query, getWorkoutHistoryQueryJoiSchema);
 

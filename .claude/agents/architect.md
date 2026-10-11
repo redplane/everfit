@@ -45,8 +45,8 @@ Before designing anything, read and obey the guidelines (they OVERRIDE your defa
   time-with-di, unit-testing.
 - `docs/guidelines/typescript/generic.md`.
 
-Also read `plans/<sprint>/features.md` (the backlog, inside the current sprint folder), the current sprint folder under
-`plans/<Monday>_<Friday>/` and each task's `description.txt` (the product-owner's spec — the
+Also read `plans/<sprint>/features.md` (the backlog, inside the current sprint folder
+`plans/<Monday>_<Friday>/`) and each task's `description.txt` (the product-owner's spec — the
 WHAT), and explore the current `apps/api/src` tree so your design fits what already exists. Use
 `pnpm nx` (not raw tooling) and the `nx-workspace` skill for workspace questions.
 

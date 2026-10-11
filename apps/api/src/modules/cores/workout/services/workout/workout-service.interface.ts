@@ -1,12 +1,13 @@
 import { WorkoutEntryEntity } from '../../entities/workout-entry.entity';
 import { CreateWorkoutOptions } from '../../../../../models/options/create-workout-options';
 import { WorkoutHistorySearchCriteria } from '../../../../../models/criteria/workout-history-search-criteria';
+import { PersonalRecordCriteria } from '../../../../../models/criteria/personal-record-criteria';
+import { PersonalRecordAggregate } from '../../../../../models/results/personal-record-aggregate';
 import { CursorPage } from '../../../../../common/models/cursor-page';
 
 /**
- * Contract for workout data access (F5/F6). Consumed via the `SERVICE__WORKOUT` token by the logging
- * (F5) and history (F6) orchestration services. PR (F7/F8) read methods are added to this interface
- * in their own tasks.
+ * Contract for workout data access (F5/F6/F7). Consumed via the `SERVICE__WORKOUT` token by the
+ * logging (F5), history (F6), and personal-record (F7, extended by F8) orchestration services.
  */
 export interface IWorkoutService {
   //#region Methods
@@ -33,5 +34,17 @@ export interface IWorkoutService {
   searchHistoryAsync(
     criteria: WorkoutHistorySearchCriteria,
   ): Promise<CursorPage<WorkoutEntryEntity>>;
+
+  /**
+   * Computes the three personal records (F7) for one `(user_id, exercise_id)` scope — heaviest set
+   * (`MAX(weight_kg)`), highest-volume set (`MAX(reps * weight_kg)`), and best Epley 1RM
+   * (`MAX(weight_kg * (1 + reps / 30.0))`) — each as a **top-1 index scan** over `workout_sets`
+   * (`ORDER BY <metric> DESC, performed_at ASC, id ASC LIMIT 1`, so the earliest achievement wins a
+   * tie deterministically). The three independent reads run concurrently. Every value is in **kg**;
+   * `volumeKg`/`oneRepMaxKg` are derived from the winning row. When the user has no sets for that
+   * exercise each metric is `null` (empty-but-not-an-error). The optional `from`/`to` half-open range
+   * narrows the scan (F8); omitted = all-time.
+   */
+  getPersonalRecordsAsync(criteria: PersonalRecordCriteria): Promise<PersonalRecordAggregate>;
   //#endregion
 }

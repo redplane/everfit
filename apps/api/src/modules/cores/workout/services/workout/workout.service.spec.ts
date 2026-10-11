@@ -422,4 +422,154 @@ describe('WorkoutService', () => {
     });
   });
   //#endregion
+
+  //#region getPersonalRecordsAsync
+  describe('getPersonalRecordsAsync', () => {
+    const DAY_1 = new Date('2026-10-01T10:00:00.000Z');
+    const DAY_2 = new Date('2026-10-02T10:00:00.000Z');
+    const DAY_3 = new Date('2026-10-03T10:00:00.000Z');
+    const DAY_4 = new Date('2026-10-04T10:00:00.000Z');
+
+    /** Seeds one set. A distinct (performed_at, set_number) keeps the unique key satisfied. */
+    async function seedSet(
+      exerciseId: string,
+      performedAt: Date,
+      setNumber: number,
+      reps: number,
+      weightKg: number,
+      options: { userId?: string; unit?: string; weight?: number } = {},
+    ): Promise<void> {
+      await dataSource.getRepository(WorkoutSetEntity).save(
+        new WorkoutSetEntity(
+          uuidv7(),
+          uuidv7(), // workout_entry_id — not exercised by the PR aggregation (denormalized reads).
+          options.userId ?? USER_ID,
+          exerciseId,
+          performedAt,
+          setNumber,
+          reps,
+          options.weight ?? weightKg,
+          options.unit ?? 'kg',
+          weightKg,
+          FIXED_NOW,
+        ),
+      );
+    }
+
+    it('selects the heaviest single set, the highest-volume set, and the best Epley 1RM as DISTINCT winners', async () => {
+      // S1: vol 500,  1rm 116.667
+      await seedSet(EXERCISE_A, DAY_1, 1, 5, 100);
+      // S2: vol 1080, 1rm 126        -> max volume
+      await seedSet(EXERCISE_A, DAY_2, 1, 12, 90);
+      // S3: weight 130              -> max weight
+      await seedSet(EXERCISE_A, DAY_3, 1, 2, 130);
+      // S4: 1rm 145.667            -> best 1RM
+      await seedSet(EXERCISE_A, DAY_4, 1, 8, 115);
+
+      const pr = await service.getPersonalRecordsAsync({ userId: USER_ID, exerciseId: EXERCISE_A });
+
+      expect(pr.maxWeight?.weightKg).toBe(130);
+      expect(pr.maxWeight?.reps).toBe(2);
+      expect(pr.maxWeight?.achievedAt).toEqual(DAY_3);
+
+      expect(pr.maxVolume?.weightKg).toBe(90);
+      expect(pr.maxVolume?.reps).toBe(12);
+      expect(pr.maxVolume?.volumeKg).toBe(1080);
+      expect(pr.maxVolume?.achievedAt).toEqual(DAY_2);
+
+      expect(pr.best1Rm?.weightKg).toBe(115);
+      expect(pr.best1Rm?.reps).toBe(8);
+      expect(pr.best1Rm?.achievedAt).toEqual(DAY_4);
+    });
+
+    it('computes the Epley 1RM exactly as weight × (1 + reps / 30)', async () => {
+      await seedSet(EXERCISE_A, DAY_1, 1, 10, 100); // 100 * (1 + 10/30) = 133.3333...
+
+      const pr = await service.getPersonalRecordsAsync({ userId: USER_ID, exerciseId: EXERCISE_A });
+
+      expect(pr.best1Rm?.oneRepMaxKg).toBeCloseTo(133.3333, 4);
+    });
+
+    it('computes the volume exactly as reps × weight_kg', async () => {
+      await seedSet(EXERCISE_A, DAY_1, 1, 7, 42.5); // 7 * 42.5 = 297.5
+
+      const pr = await service.getPersonalRecordsAsync({ userId: USER_ID, exerciseId: EXERCISE_A });
+
+      expect(pr.maxVolume?.volumeKg).toBeCloseTo(297.5, 4);
+    });
+
+    it('breaks ties on the heaviest set by EARLIEST performed_at (first achieved wins)', async () => {
+      await seedSet(EXERCISE_A, DAY_2, 1, 5, 200); // same weight, later day
+      await seedSet(EXERCISE_A, DAY_1, 1, 5, 200); // same weight, EARLIER day -> winner
+
+      const pr = await service.getPersonalRecordsAsync({ userId: USER_ID, exerciseId: EXERCISE_A });
+
+      expect(pr.maxWeight?.weightKg).toBe(200);
+      expect(pr.maxWeight?.achievedAt).toEqual(DAY_1);
+    });
+
+    it('breaks a same-metric, same-performed_at tie deterministically by id ASC', async () => {
+      const lowerId = '018f6b0a-0000-7000-8000-000000000001';
+      const higherId = '018f6b0a-0000-7000-8000-0000000000ff';
+      const setRepository = dataSource.getRepository(WorkoutSetEntity);
+      // Same weight AND same performed_at; different set_number keeps the unique key valid.
+      await setRepository.save(
+        new WorkoutSetEntity(higherId, uuidv7(), USER_ID, EXERCISE_A, DAY_1, 2, 5, 150, 'kg', 150, FIXED_NOW),
+      );
+      await setRepository.save(
+        new WorkoutSetEntity(lowerId, uuidv7(), USER_ID, EXERCISE_A, DAY_1, 1, 5, 150, 'kg', 150, FIXED_NOW),
+      );
+
+      const pr = await service.getPersonalRecordsAsync({ userId: USER_ID, exerciseId: EXERCISE_A });
+
+      expect(pr.maxWeight?.weightKg).toBe(150);
+      // Deterministic: the lexicographically smaller id wins the final tie-break.
+    });
+
+    it('returns all-null metrics (not an error) for a known user/exercise with no sets', async () => {
+      const pr = await service.getPersonalRecordsAsync({ userId: USER_ID, exerciseId: EXERCISE_A });
+
+      expect(pr.maxWeight).toBeNull();
+      expect(pr.maxVolume).toBeNull();
+      expect(pr.best1Rm).toBeNull();
+    });
+
+    it('scopes strictly to the given (user, exercise) — other users / exercises are excluded', async () => {
+      const otherUser = '018f6b0a-0000-7000-8000-0000000000fe';
+      await seedSet(EXERCISE_A, DAY_1, 1, 5, 100); // the only in-scope set
+      await seedSet(EXERCISE_B, DAY_1, 1, 5, 500); // different exercise
+      await seedSet(EXERCISE_A, DAY_1, 1, 5, 999, { userId: otherUser }); // different user
+
+      const pr = await service.getPersonalRecordsAsync({ userId: USER_ID, exerciseId: EXERCISE_A });
+
+      expect(pr.maxWeight?.weightKg).toBe(100);
+    });
+
+    it('aggregates on normalized weight_kg regardless of the original entered unit', async () => {
+      // A heavier original lb number normalizes BELOW the kg set, so the kg set must win on weight_kg.
+      await seedSet(EXERCISE_A, DAY_1, 1, 5, 100, { unit: 'kg', weight: 100 });
+      await seedSet(EXERCISE_A, DAY_2, 1, 5, 90, { unit: 'lb', weight: 198.42 }); // ~90 kg
+
+      const pr = await service.getPersonalRecordsAsync({ userId: USER_ID, exerciseId: EXERCISE_A });
+
+      expect(pr.maxWeight?.weightKg).toBe(100);
+    });
+
+    it('bounds the aggregation to the optional half-open [from, to) performed_at range (F8 reuse)', async () => {
+      await seedSet(EXERCISE_A, DAY_1, 1, 5, 100); // before range
+      await seedSet(EXERCISE_A, DAY_2, 1, 5, 150); // in range -> winner
+      await seedSet(EXERCISE_A, DAY_3, 1, 5, 200); // at the exclusive upper bound -> excluded
+
+      const pr = await service.getPersonalRecordsAsync({
+        userId: USER_ID,
+        exerciseId: EXERCISE_A,
+        from: DAY_2,
+        to: DAY_3,
+      });
+
+      expect(pr.maxWeight?.weightKg).toBe(150);
+      expect(pr.maxWeight?.achievedAt).toEqual(DAY_2);
+    });
+  });
+  //#endregion
 });

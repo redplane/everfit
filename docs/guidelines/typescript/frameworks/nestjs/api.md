@@ -91,6 +91,10 @@ central exception filter instead of per-handler `try/catch` — but the .NET CQR
   - **List / search:** `GET /api/<module-plural-or-noun>` with filters in the query string,
     returning a paginated `SearchResult<T>` where `T` is the response DTO.
     e.g. `GET /api/workouts?userId=…&exerciseName=bench&from=…&to=…&cursor=…&limit=20`
+    The response shape depends on the pagination style — **offset** lists return `items` **and**
+    `total`; **cursor** lists return only `items` (plus a `nextCursor`) and **must not** return a
+    `total`. Follow the cross-cutting rule in
+    **[../../../best-practices/pagination.md](../../../best-practices/pagination.md)**.
   - **Create:** `POST /api/<module>` with a body payload. Bulk create uses the same route with
     an array payload.
   - **Update:** `PUT /api/<module>/:id` with a body payload; updatable fields use an

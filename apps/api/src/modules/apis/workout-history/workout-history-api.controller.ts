@@ -7,6 +7,7 @@ import { WorkoutHistoryQueryServiceInjectionTokens } from './services/workout-hi
 import { GetWorkoutHistoryQueryDto } from './dto/get-workout-history-query.dto';
 import { getWorkoutHistoryQueryJoiSchema } from './dto/get-workout-history-query.joi-schema';
 import { WorkoutHistoryItemDto } from './dto/workout-history-item.dto';
+import { WorkoutHistorySearchResultDto } from './dto/workout-history-search-result.dto';
 import { SearchResult } from '../../../common/models/search-result';
 
 @ApiTags('Workouts')
@@ -29,6 +30,7 @@ export class WorkoutHistoryApiController {
   @ApiOperation({ summary: 'Get workout history' })
   @ApiOkResponse({
     description: 'A cursor-paginated page of the user’s workout history, weights in the requested unit.',
+    type: WorkoutHistorySearchResultDto,
   })
   public async searchAsync(
     @Query() query: GetWorkoutHistoryQueryDto,

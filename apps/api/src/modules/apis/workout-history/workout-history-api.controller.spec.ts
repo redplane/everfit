@@ -108,6 +108,18 @@ describe('WorkoutHistoryApiController', () => {
         UserByIdNotFoundException,
       );
     });
+
+    // F6 — cursor-pagination response-shape compliance: the controller passes the service shape
+    // through unchanged, which must expose items/limit/nextCursor and no `total` key.
+    it('returns a body with no total key and exposes items/limit/nextCursor', async () => {
+      queryService.result = { items: [], limit: 20, nextCursor: 'next-cursor' };
+
+      const result = await controller.searchAsync(validQuery());
+
+      expect('total' in result).toBe(false);
+      expect(Object.prototype.hasOwnProperty.call(result, 'total')).toBe(false);
+      expect('items' in result && 'limit' in result && 'nextCursor' in result).toBe(true);
+    });
   });
   //#endregion
 });

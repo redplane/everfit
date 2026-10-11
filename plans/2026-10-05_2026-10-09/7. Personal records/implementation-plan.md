@@ -1,5 +1,18 @@
 # Implementation Plan — Task 7: Personal records (F7)
 
+> **DECISION UPDATE (2026-10-12, human-approved) — exercise existence IS validated.**
+> A reviewer flagged a contract deviation on PR #8 (`feat/7-personal-records`): `GET
+> /api/personal-record` returns **`404 EXERCISE_NOT_FOUND`** (via `ExerciseByIdNotFoundException`)
+> when the `exerciseId` does not exist, rather than the originally-planned "200 with all-null
+> metrics for an unknown exercise". The human **resolved this in favor of keeping the stricter 404
+> behavior**, which is what the shipped code already does. **Rationale:** it matches the requirement
+> wording and the existing exercise-exists validation pattern used elsewhere (e.g. workout logging,
+> F5), and keeps "unknown exercise" (a client error) distinct from "known exercise with no logged
+> sets" (which still correctly yields `200` + null metrics). This decision **supersedes** the
+> "200 + null metrics for unknown exercise" statements in §1, §5.4, and §8.1 below. No runtime
+> behavior was changed by this update — only the OpenAPI annotations on the controller and this
+> record were brought in line with the shipped code.
+
 Phase 1 (PLAN ONLY). No production code written yet. Awaiting approval before Phase 2.
 
 Scope confirmed against `description.txt` (product), `architecture-design.md` (confirmed contract),
@@ -23,11 +36,12 @@ All metrics are computed on normalized **kg**; weight-scaled outputs are convert
 metric is `null` (empty-but-not-an-error). Unknown user → `404 USER_NOT_FOUND`.
 
 **Confirmed contract decisions** (from `architecture-design.md`):
-- **Exercise existence is NOT validated.** The design lists only `400` (validation) and
+- **Exercise existence is NOT validated.** ~~The design lists only `400` (validation) and
   `404 USER_NOT_FOUND` as errors, and states "Known user/exercise with no sets → 200 with null
   metrics." An unknown `exerciseId` therefore simply yields no matching sets → all-null metrics
-  (empty-not-error), not a 404. No `ExerciseByIdNotFoundException` is thrown here. (I surface this
-  explicitly so the reviewer/QA can confirm the intent; it matches the empty-not-error rule.)
+  (empty-not-error), not a 404. No `ExerciseByIdNotFoundException` is thrown here.~~
+  **SUPERSEDED (2026-10-12, see the DECISION UPDATE at top): exercise existence IS validated —
+  unknown `exerciseId` → `404 EXERCISE_NOT_FOUND` via `ExerciseByIdNotFoundException`.**
 - `unit` is **required**; omission or an unknown code → `400 VALIDATION_ISSUE` at the Joi boundary
   before the service runs.
 
@@ -253,7 +267,9 @@ add `weight_kg` rows):
   - `unit=lb` → weight-scaled values converted; `unit` echoed as `lb`.
   - omitted `unit` → `400`.
   - unknown user → `404 USER_NOT_FOUND`.
-  - known user + **unknown exercise** (no sets) → `200` with all-null metrics (empty-not-error).
+  - known user + **unknown exercise** → ~~`200` with all-null metrics (empty-not-error)~~
+    **SUPERSEDED (2026-10-12): `404 EXERCISE_NOT_FOUND`** (see the DECISION UPDATE at top). A
+    *known* exercise with no logged sets still returns `200` with all-null metrics.
   - `GET /api/api/personal-record` (double prefix) → `404`.
   - **This only ADDS new cases + a gated helper option; it does not modify or delete any existing
     smoke case** (the existing F1/F5/F6 describes and their seeds are untouched). Flagged here
@@ -281,8 +297,10 @@ expression/descending index (not a seq scan) — since pg-mem cannot prove index
 ---
 
 ## 8. Open decisions to confirm (surfaced, not assumed)
-1. **Exercise existence not validated** — unknown `exerciseId` → `200` null metrics (per confirmed
-   contract). Confirm this is intended (no `EXERCISE_NOT_FOUND` here).
+1. ~~**Exercise existence not validated** — unknown `exerciseId` → `200` null metrics (per confirmed
+   contract). Confirm this is intended (no `EXERCISE_NOT_FOUND` here).~~
+   **RESOLVED (2026-10-12, human-approved): exercise existence IS validated — unknown `exerciseId`
+   → `404 EXERCISE_NOT_FOUND`. See the DECISION UPDATE at top.**
 2. **Single shared `PersonalRecordMetricDto`** (optional `volume`/`oneRepMax`) vs three distinct
    metric DTO classes. Plan uses the shared DTO.
 3. **Volume conversion** = `fromBaseAsync(volumeKg, unit)` (single 2-dp rounding) vs

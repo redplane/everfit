@@ -1,5 +1,11 @@
 import { Controller, Get, HttpCode, HttpStatus, Inject, Query } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBadRequestResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { IJoiService } from '../../../common/services/joi/joi-service.interface';
 import { JoiServiceInjectionTokens } from '../../../common/services/joi/joi-injection-tokens';
 import { IPersonalRecordQueryService } from './services/personal-record-query/personal-record-query-service.interface';
@@ -29,7 +35,19 @@ export class PersonalRecordApiController {
   @ApiOkResponse({
     description:
       'The three personal records (max weight, max volume, best 1RM) for a user+exercise, each with ' +
-      'its achievement date, weights in the requested unit (null metrics when there are no sets).',
+      'its achievement date, weights in the requested unit (null metrics when the exercise exists ' +
+      'but has no logged sets).',
+  })
+  @ApiBadRequestResponse({
+    description:
+      'The request failed validation (`VALIDATION_ISSUE`) — e.g. a missing/malformed `userId`, ' +
+      '`exerciseId`, or an unsupported `unit`.',
+  })
+  @ApiNotFoundResponse({
+    description:
+      'A referenced resource does not exist. The stable `code` distinguishes which one: ' +
+      '`USER_NOT_FOUND` when the `userId` has no matching user, or `EXERCISE_NOT_FOUND` when the ' +
+      '`exerciseId` has no matching exercise.',
   })
   public async getAsync(@Query() query: GetPersonalRecordQueryDto): Promise<PersonalRecordDto> {
     // 2. Validate request (shape & types) — required userId, exerciseId, and unit.

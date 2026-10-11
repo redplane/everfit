@@ -6,6 +6,7 @@
 //
 // Shipped so far:
 //   - Task 2 (F2): users
+//   - Task 3 (F3): exercises, muscle_groups, exercise_muscle_groups (M:N mapping)
 
 Table users {
   id uuid [pk, note: 'UUID v7, pk_users; supplied by the application']
@@ -15,3 +16,40 @@ Table users {
 
   Note: 'User master data (F2). Minimal record for existence validation and read-only discovery.'
 }
+
+Table exercises {
+  id uuid [pk, note: 'UUID v7, pk_exercises; supplied by the application']
+  name varchar(200) [not null, unique, note: 'uq_exercises_name']
+  created_time timestamptz [not null]
+  updated_time timestamptz [null]
+
+  Note: 'Exercise catalogue master data (F3). Read-only discovery this sprint; seeded by Task 9.'
+}
+
+Table muscle_groups {
+  id uuid [pk, note: 'UUID v7, pk_muscle_groups; supplied by the application']
+  name varchar(200) [not null, unique, note: 'uq_muscle_groups_name']
+  created_time timestamptz [not null]
+  updated_time timestamptz [null]
+
+  Note: 'Muscle-group master data (F3). Valid values for the history muscle-group filter (F6).'
+}
+
+Table exercise_muscle_groups {
+  id uuid [pk, note: 'UUID v7, pk_exercise_muscle_groups; supplied by the application']
+  exercise_id uuid [not null, note: 'fk_exercise_muscle_groups_exercise_id -> exercises.id']
+  muscle_group_id uuid [not null, note: 'fk_exercise_muscle_groups_muscle_group_id -> muscle_groups.id']
+  created_time timestamptz [not null]
+  updated_time timestamptz [null]
+
+  Indexes {
+    (exercise_id, muscle_group_id) [unique, name: 'uq_exercise_muscle_groups_exercise_id_muscle_group_id']
+    (muscle_group_id, exercise_id) [name: 'ix_exercise_muscle_groups_muscle_group_id']
+  }
+
+  Note: 'Configurable M:N exercise<->muscle-group mapping (F3). The pair is unique (a duplicate mapping is rejected); the (muscle_group_id, exercise_id) index backs the history muscle-group filter (F6).'
+}
+
+// Exercises <-> muscle groups is logical many-to-many, resolved through exercise_muscle_groups.
+Ref: exercise_muscle_groups.exercise_id > exercises.id
+Ref: exercise_muscle_groups.muscle_group_id > muscle_groups.id

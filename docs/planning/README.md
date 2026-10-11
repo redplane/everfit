@@ -10,8 +10,9 @@ previous one already wrote down.
 | -------------------- | -------------------------------------------------------------------- | ------------------------------ | -------------------------------------- |
 | `product-owner`      | Write `goal.md` + resolve open questions, then (after approval) break the spec into features + task folders | `docs/requirement.md`   | `plans/<sprint>/goal.md`, `features.md`, `plans/<sprint>/<N>. <Title>/description.txt` |
 | `architect`          | After PO+human finalize tasks: per-task design (DB/API/tests) in dependency order | `features.md`, each `description.txt`, guidelines, src, DB tools | `architecture.md`, `plans/<sprint>/<N>. <Title>/architecture-design.md` |
-| `developer`          | Plan a confirmed task, then (after approval) implement + unit-test it; sync DB diagram; one PR per task (stacked if dependent) | a task folder's `description.txt` + `architecture-design.md`, architecture | `implementation-plan.md`, production code under `apps/api/src`, `docs/designs/database-diagram.txt`, a PR |
-| `reviewer`           | QA gate: review the diff vs contract + conventions; enforce coverage | the task folder, diff, guidelines | a PASS / CHANGES-REQUESTED verdict (read-only) |
+| `developer`          | Plan a confirmed task, then (after approval) implement + unit-test it; sync DB diagram; one **draft** PR per task (stacked if dependent) | a task folder's `description.txt` + `architecture-design.md`, architecture | `implementation-plan.md`, production code under `apps/api/src`, `docs/designs/database-diagram.txt`, a draft PR |
+| `reviewer`           | Code-review gate: review the diff vs contract + conventions; enforce coverage; on PASS hand off to `qa` | the task folder, diff, guidelines | a PASS / CHANGES-REQUESTED verdict (read-only) |
+| `qa`                 | External-testing gate after reviewer PASS: no-op for non-API tasks; for API tasks write a test plan (human-approved before the PR goes ready) | the task folder (`description.txt` + `architecture-design.md`), guidelines, DB tools | `plans/<sprint>/<N>. <Title>/tests/test-plan.md` |
 | `ai-workflow-scribe` | Maintain the required AI_WORKFLOW.md deliverable                     | the session, git log           | `AI_WORKFLOW.md` only                  |
 
 All agents strictly follow `docs/guidelines/` — those conventions override any default behavior.
@@ -34,14 +35,19 @@ All agents strictly follow `docs/guidelines/` — those conventions override any
       confirms. Implementation transfers to the developer only once the design is confirmed.
     - `implementation-plan.md` — the developer's plan (changes + test cases to cover), written on
       handoff **before any code**; implementation waits for approval of this plan.
+    - `tests/test-plan.md` — the QA agent's external test scenarios, written **only for API tasks**
+      after the reviewer PASSES. Marked DRAFT until a human approves it; that approval is what lets
+      the task's **draft PR be marked ready**. Non-API tasks get no `tests/` folder (QA is a no-op).
 
 Other locations touched by the team:
 
 - `docs/designs/database-diagram.txt` — the schema diagram in **dbdiagram.io (DBML)** syntax, kept
   in sync by the developer whenever a task changes the schema. If it doesn't exist, the developer
   asks the human before creating it.
-- **One pull request per task** (branch per task); a task that depends on another is delivered as a
-  **stacked PR** based on the dependency's branch.
+- **One pull request per task** (branch per task), opened as a **draft**; a task that depends on
+  another is delivered as a **stacked PR** based on the dependency's branch. A draft PR is marked
+  **ready** only after the reviewer PASSES and — for API tasks — QA's `tests/test-plan.md` is
+  human-approved.
 
 ## How to drive the team
 
@@ -63,12 +69,16 @@ Run them in sequence, reviewing each hand-off before moving on:
    → the developer writes `implementation-plan.md` (changes + test cases) and stops. Review it.
 7. **Build** — after approving the plan: `@developer implement the approved plan`
    → the developer codes to the guidelines, syncs `docs/designs/database-diagram.txt` if the schema
-   changed, runs `pnpm nx test api`, and opens one PR for the task (stacked if it depends on
-   another). Review the diff and the test run.
-8. **Review (QA gate)** — `@reviewer review the work for "plans/2026-10-05_2026-10-09/1. Implement create user api"`
-   → if CHANGES REQUESTED, send the findings back to `@developer`; repeat until PASS, then move to
-   the next task respecting `Depends on` order.
-9. **Document the AI process** — periodically (or after a notable correction/rejection)
+   changed, runs `pnpm nx test api`, and opens one **draft** PR for the task (stacked if it depends
+   on another). Review the diff and the test run.
+8. **Code review** — `@reviewer review the work for "plans/2026-10-05_2026-10-09/1. Implement create user api"`
+   → if CHANGES REQUESTED, send the findings back to `@developer`; repeat until PASS. On PASS the
+   reviewer hands off to QA.
+9. **QA (external-testing gate)** — `@qa prepare a test plan for "plans/2026-10-05_2026-10-09/1. Implement create user api"`
+   → for a **non-API** task QA is a no-op (nothing to black-box test); for an **API** task QA writes
+   `tests/test-plan.md`. Review and **approve** it, then mark the draft PR ready (`gh pr ready <n>`)
+   and move to the next task respecting `Depends on` order.
+10. **Document the AI process** — periodically (or after a notable correction/rejection)
    `@ai-workflow-scribe log this session in AI_WORKFLOW.md` so the required deliverable stays
    current with real, verifiable examples.
 

@@ -124,6 +124,12 @@ Each `architecture-design.md` MUST contain:
   purpose, request DTOs (body/query/param) with field types and Joi constraints, success response
   DTO + status code, and error responses (which `BusinessException` subtype + stable code). Note
   whether each endpoint is new, a change to an existing one, or a removal. If none, say "none".
+- **Environment variables (if any)** — if the task introduces **new environment variables** (new
+  config keys the code will read), you MUST list them here so the developer can implement them:
+  the exact variable name, what it's for, whether it's required or optional, its default (if any),
+  and an example value. Note which project/app the variable belongs to (e.g. `api`). If the task
+  introduces no new environment variables, say "none". Don't make the developer discover config
+  keys from the prose — name them explicitly.
 - **Tests to define** — the test **files** to create (exact paths) and which functions / branches /
   exceptions each must cover (per `best-practices/unit-testing.md`: every branch, exact exception
   type, in-memory DB, ≥80% branch coverage, one `describe` per function). If none, say "none".

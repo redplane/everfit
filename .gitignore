@@ -43,6 +43,9 @@ Thumbs.db
 .env.local
 .env.*.local
 !.env.example
+# Per-project real env files (git-ignored); commit only the *.example samples.
+.env.api
+!.env.api.example
 
 .nx/cache
 .nx/workspace-data

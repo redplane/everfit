@@ -1,4 +1,23 @@
 export enum BusinessExceptionCodes {
+  // Cross-cutting (platform foundation — F1)
   VALIDATION_ISSUE = 'VALIDATION_ISSUE',
   UNHANDLED = 'UNHANDLED',
+
+  // User (F2)
+  USER_NOT_FOUND = 'USER_NOT_FOUND',
+
+  // Exercise & muscle group (F3)
+  EXERCISE_NOT_FOUND = 'EXERCISE_NOT_FOUND',
+  MUSCLE_GROUP_NOT_FOUND = 'MUSCLE_GROUP_NOT_FOUND',
+  EXERCISE_MUSCLE_GROUP_ALREADY_EXISTS = 'EXERCISE_MUSCLE_GROUP_ALREADY_EXISTS',
+
+  // Scale-unit conversion (F4)
+  UNSUPPORTED_SCALE_UNIT = 'UNSUPPORTED_SCALE_UNIT',
+  CROSS_CATEGORY_CONVERSION = 'CROSS_CATEGORY_CONVERSION',
+
+  // Workout logging (F5 — 409)
+  WORKOUT_ALREADY_EXISTS = 'WORKOUT_ALREADY_EXISTS',
+
+  // Workout history (F6 — surfaced as a 400 ValidationException)
+  INVALID_CURSOR = 'INVALID_CURSOR',
 }

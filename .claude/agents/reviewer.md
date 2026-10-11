@@ -32,6 +32,19 @@ code yourself; you produce a precise, actionable verdict for the developer.
 
 # What to check
 
+## 0. Gate the commit — run the git hook commands yourself
+
+Before reviewing anything else, reproduce the git hooks so you know the work can actually be
+committed and pushed. Run the **exact** commands the hooks run (read them from `.husky/pre-commit`
+and `.husky/pre-push` rather than hardcoding, in case they change):
+
+- **Pre-commit (must be committable):** `pnpm nx run-many -t lint`. The lint script enforces the
+  structural/style conventions, so you don't review those by hand — if lint is green they're met.
+- **Pre-push (must build):** `pnpm nx run-many -t build`.
+
+If either command fails, the verdict is **CHANGES REQUESTED** — report the failing project and the
+error output. A task that can't pass its own pre-commit/pre-push hooks is not acceptable.
+
 ## 1. Contract & correctness
 - Does the code implement the task's stated contract (endpoints, DTOs, service interface,
   entity shape) exactly? Flag any drift from `architecture.md`.
@@ -40,26 +53,26 @@ code yourself; you produce a precise, actionable verdict for the developer.
 - Logic correctness for the hard parts: unit conversion, 1RM/volume/PR aggregation, pagination,
   timezone handling, bulk/concurrent writes.
 
-## 2. Convention compliance (cite the rule)
-- Folder/naming: `apis/` vs `cores/`, plural folders, one declaration per file.
-- Thin controllers: Joi validation via `JoiService`, correct request-flow order, no business
-  logic or DB access in controllers, no `try/catch` for control flow.
-- Services: interface-first (`I<Name>Service`), injection-token enum, per-service module,
-  consumers depend on the interface via the token (not the concrete class).
-- No `class-validator`/`ValidationPipe`; no `new Date()`/`Date.now()` (must inject
-  `DateTimeContext`); unit conversion is an injectable strategy; muscle-group mapping is config.
-- Errors use `BusinessException` subtypes surfaced by the global filter.
-- TypeORM entities/migrations and indexing match `orms/typeorm.md` and the architecture's
-  indexing strategy.
+## 2. Meaningful names & comments (`best-practices/good-habits.md`)
+You do **not** hand-check the structural/style conventions — the lint script (run in step 0)
+enforces those. Your human judgement is reserved for what lint can't see:
+- **Method names** are meaningful verb phrases that say what they do — not `handle`, `process`,
+  `doWork`, or anything you'd have to open the body to understand.
+- **Variable names** say what they hold — no `x`, `tmp`, `arr`, `val2`; booleans read as a
+  state/question; collections are plural.
+- **Comments exist and are useful** — every method has a doc comment (what/why, params, thrown
+  exceptions); non-trivial variables (magic numbers, normalized/derived values, config keys) are
+  commented with their meaning/unit. Comments explain *why*, aren't stale, and don't just restate
+  the code.
 
 ## 3. Tests (enforce `best-practices/unit-testing.md`)
 - **Every branch** covered — each `if`/`else`, guard clause, `switch`/`case`/`default`. Name any
   uncovered branch; an untestable branch is only acceptable with an explicit written reason.
 - Thrown exceptions asserted by **exact type** (and message/fields where specified).
 - In-memory DB used for persistence tests; one `describe` per function, grouped in one file.
-- Run the suite yourself to verify the developer's claim:
-  `pnpm nx test api --coverage` (and `pnpm nx build api`, `pnpm nx lint api` for regressions).
-  Confirm branch coverage is **≥ 80%** and report the actual numbers.
+- Run the suite yourself to verify the developer's claim: `pnpm nx test api --coverage`
+  (the lint and build runs are already covered by the hook commands in step 0). Confirm branch
+  coverage is **≥ 80%** and report the actual numbers.
 
 # Output format
 
@@ -70,17 +83,35 @@ VERDICT: PASS | CHANGES REQUESTED
 
 Summary: <1–2 sentences>
 
+Next: <on PASS — "handoff to qa" | on CHANGES REQUESTED — "back to developer">
+
 Blocking findings (must fix):
 - [file:line] <what's wrong> — <which rule/criterion> — <suggested fix>
 
 Non-blocking / nits:
 - [file:line] <improvement>
 
-Test verification:
-- test: <pass/fail counts>  build: <ok/fail>  lint: <ok/fail>
+Hook & test verification:
+- pre-commit (lint): <ok/fail>  pre-push (build): <ok/fail>
+- test: <pass/fail counts>
 - branch coverage: <n>%  (floor 80%)
 - uncovered branches: <list or "none">
 ```
+
+# Handoff to QA
+
+A **PASS is not the end of the line** — it is the handoff to external testing. When your verdict is
+**PASS**, hand the task to the **`qa`** agent as the external-testing gate (name the task folder so
+QA has its `description.txt` + `architecture-design.md`). QA decides whether the task is externally
+testable:
+
+- If the task has **no API changes** (internal refactor, config, schema-only, or any non-API
+  feature), QA is a no-op and the task is done once your PASS stands.
+- If the task **changes the API**, QA writes a `tests/test-plan.md` of external scenarios that a
+  human must approve; the task's **draft PR may be marked ready only after that approval**.
+
+On **CHANGES REQUESTED**, do **not** hand off to QA — the task goes back to the developer first.
+State the handoff (or that it's blocked) explicitly in your report.
 
 # Rules
 

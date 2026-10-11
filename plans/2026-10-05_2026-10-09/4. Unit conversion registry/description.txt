@@ -1,0 +1,53 @@
+TASK 4 — Unit conversion registry (kg / lb, extensible)
+
+Feature IDs: F4
+Depends on: Task 1 (Platform foundation)
+  (Independent of Tasks 2 and 3 — may be built in parallel with them.)
+
+User story
+  As an engineer, I want units and their conversions organized by category and defined in
+  one place in code so that storage stays normalized, conversions are only ever done within
+  a category, and adding a new unit — or a whole new category — later is a minimal, localized
+  change.
+
+Acceptance criteria
+  - Units are organized by category (e.g. weight, length); every unit belongs to exactly one
+    category. This sprint only the weight category is used (units kg and lb), but the model
+    is category-aware.
+  - Each unit carries a stable code (the value used on the wire, e.g. "kg"/"lb"), a name, and
+    a description.
+  - When a weight in a supported unit (kg or lb) is logged, the system stores the original
+    value + unit AND the normalized value (kg for the weight category).
+  - When a read returns a stored normalized value for a requested output unit, the value is
+    converted to that unit for display only and never re-stored.
+  - Conversion is only valid between units of the SAME category; converting across categories
+    (e.g. weight <-> length) is an error.
+  - When a new unit is added to an existing category, or a whole new category is added later,
+    it requires only a minimal, localized config-or-code change — no conversion logic
+    scattered through business code.
+  - When an unsupported or invalid unit is supplied anywhere, the request is rejected with a
+    structured validation error.
+
+Edge cases
+  - Invalid or unsupported unit on input or output returns a 400.
+  - A cross-category conversion request is an error (never silently coerced).
+  - Display precision for converted values is defined consistently (e.g. 2 decimals).
+
+Out of scope / assumptions
+  - Only the weight category (kg + lb) ships this sprint; length/other categories and units
+    like stone are the extensibility examples the model must accommodate without rework.
+  - The registry lives in code (not the database), per the resolved decision. The concrete
+    unit representation and conversion service are the architect's.
+
+Notes
+  - This conversion abstraction underpins logging (Task 5) and every read that returns
+    weights in a requested unit (Tasks 6, 7, 8).
+
+Change log
+  - 2026-10-09 (PO): Generalized the unit model from "weight-only registry" to a
+    category-based model (units grouped by category; conversion valid only within a category;
+    each unit has a stable code + name + description) per a human-approved refinement from
+    the architecture review. Rationale: a category-aware abstraction keeps extensibility
+    clean (add a unit or a whole category with minimal change) and prevents invalid
+    cross-category conversions. WHAT-level only; the concrete ScaleUnit representation and
+    conversion service remain the architect's.

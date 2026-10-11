@@ -1,0 +1,57 @@
+TASK 3 — Exercise & muscle-group master data + mapping
+
+Feature IDs: F3
+Depends on: Task 1 (Platform foundation)
+  (Independent of Tasks 2 and 4 — may be built in parallel with them.)
+
+User story
+  As a coach, I want exercises and muscle groups to be managed, configurable master data
+  with a mapping between them so that workout logs reference real exercises and history can
+  be filtered by muscle group without hardcoded logic.
+
+Acceptance criteria
+  - When a workout is logged, it references an existing exercise (not free-text
+    create-on-first-use).
+  - When an exercise's muscle groups are needed, they are resolved via a configurable
+    many-to-many mapping: one exercise may map to multiple muscle groups, and a muscle
+    group spans many exercises.
+  - When the same (exercise, muscle group) pair is added again, it is rejected or ignored —
+    the pair is unique.
+  - When a muscle-group filter is applied on history, only exercises mapped to that muscle
+    group are matched.
+  - When a list-exercises request is made, exercises are returned offset-paginated with a
+    stable ordering, each including its mapped muscle group(s) where relevant, so a caller
+    can pick a valid exercise to log or filter by. An optional partial-name filter may
+    narrow the list.
+  - When a list-muscle-groups request is made, muscle groups are returned offset-paginated
+    with a stable ordering, so a caller can discover valid values for the history
+    muscle-group filter.
+  - When no exercises / muscle groups exist, or the requested page is beyond the data, the
+    list returns an empty list, not an error.
+
+Edge cases
+  - Logging against a non-existent exercise produces a not-found error (see Task 5).
+  - A duplicate (exercise, muscle group) mapping is rejected via the uniqueness rule, not
+    silently duplicated.
+  - The mapping must be configuration-driven, not hardcoded in business logic (spec
+    extensibility requirement).
+  - List endpoints: invalid pagination parameters -> 400; a page beyond the data -> empty
+    list (not an error); stable, deterministic ordering applied.
+
+Out of scope / assumptions
+  - No end-user CRUD UI for the catalogue (the lists are read-only discovery; no
+    create/update/delete this sprint).
+  - Cardinality is many-to-many with a unique pair constraint (the architect models the
+    join table). Catalogue and mapping are seedable via Task 9.
+
+Notes
+  - Provides the exercise catalogue and muscle-group mapping that logging (Task 5) and
+    history muscle-group filtering (Task 6) depend on.
+
+Change log
+  - 2026-10-09 (PO): Added read-only "list exercises" and "list muscle groups" capabilities
+    (offset-paginated discovery) per a human-approved scope refinement from the architecture
+    review. Rationale: callers need to discover valid exercises to log/filter by and valid
+    muscle-group values for the history filter; this realizes the "offset pagination for
+    small master-data lists" half of the Q4 decision. WHAT-level only; pagination/endpoint
+    internals remain the architect's.

@@ -33,7 +33,7 @@ Work in **two phases**: first a plan (no code), then — only after approval —
      report it's still blocked.
    The current sprint folder is the Monday→Friday week of today:
    `dow=$(date +%u); echo plans/$(date -d "-$((dow-1)) days" +%Y-%m-%d)_$(date -d "-$((dow-1)) days +4 days" +%Y-%m-%d)`.
-2. Read `docs/planning/architecture.md` and the relevant guidelines (see the rules below).
+2. Read `plans/<sprint>/architecture.md` and the relevant guidelines (see the rules below).
 3. Write an **`implementation-plan.md`** into the task folder. It lists, concretely:
    - **Changes** — every file to create/change (exact paths following the conventions), the
      entities/DTOs/services/controllers/migrations involved, and the branch/PR plan for this task.
@@ -111,6 +111,23 @@ Per `docs/guidelines/best-practices/unit-testing.md`: cover **every branch** (ea
 guard clause, `switch`/`case`/`default`; note any genuinely untestable branch); assert thrown
 exceptions by **exact type** (and message/fields where specified); use an **in-memory database**
 for persistence; one `describe` per function in one file; keep branch coverage **≥ 80%**.
+
+### AppModule bootstrap smoke test (required for any task that adds/changes an API endpoint)
+
+Provider-level unit tests hand-wire the controller/service in a `TestingModule`, so they **cannot**
+catch real module-graph defects — a bad `exports`/`imports`, a missing DI import, or a controller
+path that double-applies the global `api` prefix. A task that adds or changes an endpoint without a
+bootstrap test can pass every unit test and still fail to boot (this happened on Task 2). So:
+
+- Add/extend a smoke test that composes the **real `AppModule`** —
+  `Test.createTestingModule({ imports: [AppModule] })` — overriding only the TypeORM `DataSource`
+  with an in-memory **pg-mem** instance so it is hermetic (no live Postgres). Apply the `api` global
+  prefix exactly as `main.ts` does, then `init()` + `listen(0, ...)`.
+- Assert the app initializes **and** the new routes respond at their correct `/api/<module>/...`
+  paths — including a negative assertion that the double-prefixed `/api/api/...` path does **not**
+  exist. The test must fail on the export/import/DI/path class of bug.
+- Also actually boot the app once (`pnpm nx serve api`) and probe the new endpoints before opening
+  the PR; report the observed paths/status codes. Don't rely on unit tests alone to prove it boots.
 
 ## Run the unit tests
 

@@ -116,6 +116,15 @@ developer works in two phases:
    (`gh pr create --draft`).
    - **Stacked PRs:** if the task has a `Depends on:` dependency, the developer branches off the
      dependency's branch and sets the PR base to it, so the diff shows only this task's changes.
+   - **Linear-stack tasks that share cumulative files.** Several tasks touch the same growing
+     files — notably `docs/designs/database-diagram.txt` and `apps/api/src/app/app.module.ts`. If
+     two tasks that each edit such a file both branch off the *same* base, they will **collide at
+     merge**. So when a task would otherwise branch off a shared base alongside a sibling that also
+     edits a cumulative file, branch it off the **previous task in merge order instead** (a linear
+     stack: 1 → 2 → 3 → 4 → 5…), even if its `Depends on:` only names an earlier task. Dependency
+     correctness still holds (the needed task is included transitively), the per-PR diff still shows
+     only that task's changes, and the cumulative files accumulate conflict-free. We already process
+     tasks one at a time, so nothing real is lost.
    - The PR stays a **draft** — it is not marked ready here.
 
 ### 5b. Reviewer — code-review gate

@@ -25,7 +25,7 @@ code yourself; you produce a precise, actionable verdict for the developer.
    and `architecture-design.md` (the contract / the how). **Do not edit `description.txt`** — it is
    product-owner-owned; if you think it needs changing, raise it through the developer for
    confirmation, don't modify it.
-2. `docs/planning/architecture.md` for the contract the code must satisfy.
+2. `plans/<sprint>/architecture.md` for the contract the code must satisfy.
 3. The diff / changed files. Determine scope with `git status` and
    `git diff` / `git diff --stat` (use `git diff main...` or the working tree as appropriate).
 4. The guidelines in `docs/guidelines/` — these are the rubric and they OVERRIDE defaults.

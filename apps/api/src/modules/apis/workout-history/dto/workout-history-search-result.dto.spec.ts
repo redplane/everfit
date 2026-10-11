@@ -34,8 +34,13 @@ describe('WorkoutHistorySearchResultDto', () => {
     });
 
     it('conforms to ICursorSearchResult<WorkoutHistoryItemDto> at compile time', () => {
-      // Compile-time guard: if a `total`/`offset` field is ever added to the DTO (or the cursor
-      // envelope gains one), this assignment stops type-checking and the build fails.
+      // Compile-time guard: the DTO instance stays structurally assignable to
+      // `ICursorSearchResult<T>`, so the DTO can never drop or retype a required cursor field
+      // (`items`/`limit`/`nextCursor`) without breaking this line. Note it does NOT catch an added
+      // `total`/`offset`: assigning a class *instance* (not a fresh object literal) skips the
+      // excess-property check. The "no total/offset" protection comes instead from the service
+      // return-type literal check (object literals assigned to `ICursorSearchResult<T>` reject extra
+      // keys) plus the runtime `Object.keys` assertions below and in the service/controller specs.
       const conforming: ICursorSearchResult<WorkoutHistoryItemDto> =
         new WorkoutHistorySearchResultDto([sampleItem()], 20, 'next-cursor');
 

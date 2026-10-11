@@ -6,6 +6,7 @@ import { IUserService } from '../../cores/user/services/user/user-service.interf
 import { UserServiceInjectionTokens } from '../../cores/user/services/user/user-injection-tokens';
 import { SearchResult } from '../../../common/models/search-result';
 import { UserDto } from './dto/user.dto';
+import { UserSearchResultDto } from './dto/user-search-result.dto';
 import { GetUsersQueryDto } from './dto/get-users-query.dto';
 import { getUsersQueryJoiSchema } from './dto/get-users-query.joi-schema';
 import { GetUserParamDto } from './dto/get-user-param.dto';
@@ -29,7 +30,7 @@ export class UserApiController {
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'List users' })
-  @ApiOkResponse({ description: 'An offset-paginated page of users.' })
+  @ApiOkResponse({ description: 'An offset-paginated page of users.', type: UserSearchResultDto })
   public async searchAsync(@Query() query: GetUsersQueryDto): Promise<SearchResult<UserDto>> {
     // 2. Validate request (shape & types) — defaults applied, coerced to numbers.
     const instance = await this.__joiService.validateAsync(query, getUsersQueryJoiSchema);

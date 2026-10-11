@@ -6,6 +6,7 @@ import { IMuscleGroupService } from '../../cores/exercise/services/muscle-group/
 import { MuscleGroupServiceInjectionTokens } from '../../cores/exercise/services/muscle-group/muscle-group-injection-tokens';
 import { SearchResult } from '../../../common/models/search-result';
 import { MuscleGroupDto } from './dto/muscle-group.dto';
+import { MuscleGroupSearchResultDto } from './dto/muscle-group-search-result.dto';
 import { GetMuscleGroupsQueryDto } from './dto/get-muscle-groups-query.dto';
 import { getMuscleGroupsQueryJoiSchema } from './dto/get-muscle-groups-query.joi-schema';
 
@@ -27,7 +28,10 @@ export class MuscleGroupApiController {
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'List muscle groups' })
-  @ApiOkResponse({ description: 'An offset-paginated page of muscle groups.' })
+  @ApiOkResponse({
+    description: 'An offset-paginated page of muscle groups.',
+    type: MuscleGroupSearchResultDto,
+  })
   public async searchAsync(
     @Query() query: GetMuscleGroupsQueryDto,
   ): Promise<SearchResult<MuscleGroupDto>> {

@@ -8,7 +8,10 @@
     "typeorm": "typeorm-ts-node-commonjs -d ./apps/api/src/data-source.ts",
     "migration:generate": "typeorm-ts-node-commonjs migration:generate -d ./apps/api/src/data-source.ts",
     "migration:run": "typeorm-ts-node-commonjs migration:run -d ./apps/api/src/data-source.ts",
-    "migration:revert": "typeorm-ts-node-commonjs migration:revert -d ./apps/api/src/data-source.ts"
+    "migration:revert": "typeorm-ts-node-commonjs migration:revert -d ./apps/api/src/data-source.ts",
+    "db:reset": "nx run api:db-cli -- reset --yes",
+    "db:seed": "nx run api:db-cli -- seed",
+    "db:reset-seed": "nx run api:db-cli -- reset-seed --yes"
   },
   "private": true,
   "pnpm": {

@@ -1,0 +1,35 @@
+TASK 9 — Database CLI (reset + seed)
+
+Feature IDs: F9
+Depends on: Task 2 (User master data), Task 3 (Exercise & muscle-group master data),
+            Task 4 (Unit conversion registry), Task 5 (Log workout entry)
+  (May proceed any time after the data model and master data exist; independent of
+   Tasks 6, 7, 8.)
+
+User story
+  As an engineer, I want a command-line tool to reset and re-seed the database, including a
+  large workout dataset, so that I can demonstrate correctness and query/aggregation
+  performance at scale.
+
+Acceptance criteria
+  - When the reset operation runs, the database is returned to a clean state (data
+    dropped/truncated).
+  - When the seed operation runs, it seeds master data (users, exercises, muscle groups and
+    their mapping) AND a large workout dataset of 50,000+ entries for a user.
+  - When seeded data is created, it respects all model rules: row-per-set, UTC timestamps,
+    the kg/lb unit registry, the duplicate-uniqueness constraint, and the many-to-many
+    exercise-to-muscle-group mapping.
+
+Edge cases
+  - Re-running seed must not violate the uniqueness constraints (idempotent, or reset
+    first).
+  - Seeding 50k+ entries must complete in a reasonable time (bulk/batched inserts).
+
+Out of scope / assumptions
+  - The concrete mechanism (Nx target / Nest standalone command) is the architect/
+    developer's choice.
+  - This is a developer tool, not an API endpoint.
+
+Notes
+  - Supports the performance demonstration and the video walkthrough; depends on the full
+    data model being in place (Tasks 2-5).

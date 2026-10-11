@@ -59,9 +59,11 @@ each endpoint.
 
 ## 6. Advertise the response body schema
 
-- Every endpoint **must document its response body with a typed response DTO**, not a description
-  only, so OpenAPI/Scalar renders the exact shape a `200` returns. In NestJS this means a `type:` on
-  the success-response decorator — e.g. `@ApiOkResponse({ description: '...', type: UserDto })`.
+- Every endpoint **that returns a response body must document it with a typed response DTO**, not a
+  description only, so OpenAPI/Scalar renders the exact shape the success response returns. In NestJS
+  this means a `type:` on the success-response decorator — e.g.
+  `@ApiOkResponse({ description: '...', type: UserDto })`. Endpoints that return no body (e.g. a `204`
+  delete) have nothing to type here.
 - This applies in particular to **list/search endpoints**: they must advertise their paginated
   envelope via a concrete response DTO (e.g. `UserSearchResultDto` = `items` + `total`), so the
   `items` element type and the pagination metadata are visible in the reference. A description-only

@@ -144,21 +144,6 @@ describe('UserApiController', () => {
       expect('limit' in result).toBe(false);
       expect('offset' in result).toBe(false);
     });
-
-    // F6 (Task 13) — offset response is slimmed: the body carries the server-computed `total` but
-    // NOT the request-echo `limit`/`offset`. Guards against re-adding the dropped keys.
-    it('includes total but omits the limit and offset keys from the offset response body', async () => {
-      userService.searchResult = {
-        items: [buildUser(EXISTING_ID, 'Alice')],
-        total: 1,
-      };
-
-      const result = await controller.searchAsync({ limit: 20, offset: 0 } as GetUsersQueryDto);
-
-      expect(Object.prototype.hasOwnProperty.call(result, 'total')).toBe(true);
-      expect('limit' in result).toBe(false);
-      expect('offset' in result).toBe(false);
-    });
   });
   //#endregion
 });

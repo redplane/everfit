@@ -1,0 +1,38 @@
+TASK 8 — PR comparison across named periods
+
+Feature IDs: F8
+Depends on: Task 7 (Personal records)
+
+User story
+  As a coach, I want to compare a client's PRs between the current and previous period
+  (week / month / year) so that I can see progress trends at a glance.
+
+Acceptance criteria
+  - When comparison is requested for a user, exercise, and granularity (week / month /
+    year), the API compares the current period against the immediately preceding period of
+    that granularity.
+  - When the periods are returned, the response includes a current and a previous block,
+    each with its UTC period start/end and the three PRs (max weight, max volume, best 1RM),
+    each with its value and achieved-at date.
+  - When both periods have data, a server-computed delta block gives, per PR metric, the
+    absolute difference (current minus previous), the percent, and the direction
+    (up / down / same).
+  - When a period has no data, that period's PR fields are null (empty-but-not-an-error).
+  - When previous is null for a metric, the delta reports direction "new" with a null
+    percent (no divide-by-zero).
+  - When the required unit parameter is supplied, all displayed weights are in that unit
+    (delta computed on kg, converted for display only); omission -> 400.
+  - When the userId is unknown, the API returns 404 USER_NOT_FOUND.
+
+Edge cases
+  - Period boundaries are UTC-based, computed from the current time via the injected time
+    context.
+  - No-data periods and null-previous deltas are handled as above, never as errors.
+
+Out of scope / assumptions
+  - Only named relative periods (week/month/year current-vs-previous) this sprint — NOT
+    arbitrary user-supplied date ranges.
+
+Notes
+  - Builds directly on the PR aggregation from Task 7 and the injected time context from
+    Task 1.

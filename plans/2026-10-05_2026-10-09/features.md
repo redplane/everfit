@@ -272,23 +272,34 @@ see their best performances and when they happened.
 - Given a user, exercise, and a **granularity** (week / month / year), When comparison is
   requested, Then the API compares the **current period** against the **immediately preceding
   period** of that granularity.
+- Given a **required `timezone`** parameter (an IANA zone, e.g. `"Asia/Ho_Chi_Minh"`), When
+  supplied, Then the named-period boundaries (week / month / year, current vs previous) are computed
+  in that timezone's local wall-clock and then resolved to UTC for querying, so "this month"
+  reflects the caller's calendar rather than the server's; omission → **400** validation error.
+  (Refinement adopted 2026-10-10; see `goal.md` Q5/S1.)
 - Given the periods, When returned, Then the response includes a `current` and `previous` block,
-  each with its UTC period start/end and the three PRs (max weight, max volume, best 1RM), each with
-  its value and `achievedAt` date.
+  each with its period start/end (local wall-clock bounds resolved to UTC) and the three PRs (max
+  weight, max volume, best 1RM), each with its value and `achievedAt` date.
 - Given both periods have data, When returned, Then a server-computed `delta` block gives, per PR
   metric, the `absolute` difference (current − previous), `percent`, and `direction`
   ("up" / "down" / "same").
 - Given a period has no data, When returned, Then that period's PR fields are **null**
   (empty-but-not-an-error).
-- Given `previous` is null for a metric, When the delta is computed, Then it reports
-  `direction: "new"` with a **null percent** (no divide-by-zero).
+- Given `previous` is null but `current` is present for a metric, When the delta is computed, Then
+  it reports `direction: "new"` with a **null percent** (no divide-by-zero).
+- Given `current` is null but `previous` is present for a metric, When the delta is computed, Then
+  it reports `direction: "none"`.
 - Given a **required `unit`** parameter, When supplied, Then all displayed weights are in that unit
   (delta computed on kg, converted for display only); omission → **400**.
 - Given an unknown user, When requested, Then **404 `USER_NOT_FOUND`**.
+- Given an unknown exercise, When requested, Then **404 `EXERCISE_NOT_FOUND`** (consistent with the
+  PR endpoint in F7; 2026-10-12 confirmation).
 
 **Edge cases & error handling**
-- Period boundaries are UTC-based, computed from the current time via the injected time context.
-- No-data periods and null-previous deltas handled as above, never as errors.
+- Period boundaries are derived from the current time (via the injected time context) and the
+  caller-supplied IANA `timezone`: local wall-clock period bounds are converted to UTC for querying.
+- An invalid / unknown `timezone` (or an omitted one) → **400**.
+- No-data periods and null-previous / null-current deltas handled as above, never as errors.
 
 **Out of scope / assumptions:** only named relative periods (not arbitrary date ranges) this sprint.
 

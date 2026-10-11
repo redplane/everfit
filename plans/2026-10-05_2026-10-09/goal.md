@@ -146,6 +146,11 @@ separate features or create task folders.
   The client picks a granularity (week / month / year) and the API compares the current
   period against the immediately preceding period of that granularity; period boundaries
   are derived from the current time and are **UTC-based** (consistent with Q3).
+  _Refined 2026-10-10:_ the comparison endpoint now takes a **required IANA `timezone`**
+  parameter — period boundaries are computed in that zone's local wall-clock and then
+  resolved to UTC for querying (so "this month" follows the caller's calendar, not the
+  server's). Period math still ultimately runs in UTC after the local bounds are resolved;
+  see Task 8's `description.txt` change log and `architecture.md §7`.
   _Pending sub-detail:_ the exact **response shape** — each period's three PRs (max
   weight, max volume, best 1RM, each with its achievement date) side-by-side **plus a
   computed delta**, vs just the two period result sets — is still being confirmed by the
@@ -253,6 +258,10 @@ final approval:
     with a `null` percent rather than dividing by zero.
   - All period boundaries are **UTC-based** (per Q3), computed from current time via the
     injected time context (per Q5).
+    _Refined 2026-10-10:_ boundaries are computed in a **required IANA `timezone`** parameter's
+    local wall-clock and then resolved to UTC for querying (omission → 400); the math still runs
+    in UTC after the local bounds are resolved. See Q5, Task 8 `description.txt`, and
+    `architecture.md §7`.
 
 - [x] **S2 (from Q6) — Output unit on reads.** Is the output unit a **per-request
   parameter**? What is its **default** (likely kg, the normalized unit)? And does it apply

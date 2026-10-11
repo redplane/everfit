@@ -1,7 +1,7 @@
 # System Architecture — Everfit Workout Logging API
 
 Sprint: 2026-10-05 → 2026-10-09
-Status: DRAFT for human confirmation (no implementation yet).
+Status: CONFIRMED — implementation underway/shipped (tasks delivered as PRs #2–#10, merged/open).
 Inputs: `goal.md` (approved decisions), `features.md` (F1–F9), each task's `description.txt`,
 `docs/guidelines/**`.
 

@@ -1,0 +1,55 @@
+TASK 14 — Offset list response schema documentation
+
+Feature IDs: F2, F3
+Depends on: Task 2 (User master data), Task 3 (Exercise and muscle-group master data),
+            Task 11 (Cursor pagination response-shape compliance), Task 13 (Pagination
+            envelope slimming)
+
+User story
+  As an API consumer reading the OpenAPI/Scalar docs, I want the three offset-paginated list
+  endpoints to advertise their response-body shape so that I can see exactly what fields a
+  200 returns without having to call the endpoint or read the source.
+
+Rationale
+  The cursor endpoint GET /api/workout-history now advertises a documented response schema
+  (items + limit + nextCursor) via a typed @ApiOkResponse. The three offset list endpoints —
+  GET /api/users, GET /api/exercises, GET /api/muscle-groups — still decorate their 200 with
+  a description only and NO response type, so Swagger/Scalar shows a 200 with no response-body
+  schema. This is now inconsistent with the cursor endpoint and leaves the offset envelope
+  (items + total) undocumented. This task closes that documentation gap.
+
+Acceptance criteria
+  - GET /api/users advertises a documented 200 response schema in OpenAPI/Scalar showing
+    exactly: items (an array of the user item DTO) + total. No limit, no offset.
+  - GET /api/exercises advertises a documented 200 response schema showing exactly: items
+    (an array of the exercise item DTO) + total. No limit, no offset.
+  - GET /api/muscle-groups advertises a documented 200 response schema showing exactly: items
+    (an array of the muscle-group item DTO) + total. No limit, no offset.
+  - The documented offset shape matches the pagination rule for offset lists
+    (docs/guidelines/best-practices/pagination.md §II.1): items + total only, with the
+    request-echo limit/offset deliberately NOT present.
+  - The runtime response bodies of all three endpoints are unchanged — this is a
+    documentation/OpenAPI change only, not a contract or runtime-behavior change.
+  - The cursor endpoint GET /api/workout-history is untouched (its documented items + limit +
+    nextCursor shape remains as delivered in Task 11).
+
+Edge cases
+  - total is server-computed metadata and may be optional on the underlying envelope; the
+    documented schema should present it as the offset envelope's total, consistent with the
+    other offset documentation. No limit/offset must ever appear in the documented shape.
+
+Out of scope / assumptions
+  - No change to request validation, query parameters, pagination behavior, or the data the
+    endpoints return.
+  - No change to the cursor-paginated workout-history endpoint.
+  - The exact DTO/class design used to express the documented schema is an implementation
+    detail left to the architect/developer; this task only fixes WHICH endpoints must
+    advertise WHAT shape (items + total).
+
+Notes
+  - Grounding: all three list handlers currently use @ApiOkResponse({ description: '...' })
+    with no type:, while the offset wire envelope they return is SearchResult<T> = { items,
+    total? } (post-Task-13, after limit/offset were dropped from the envelope).
+  - Item DTOs in use: UserDto (users), ExerciseDto (exercises), MuscleGroupDto (muscle groups).
+  - Pagination rule reference: docs/guidelines/best-practices/pagination.md §II.1 (offset
+    returns items + total; limit/offset are not echoed).

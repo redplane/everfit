@@ -6,6 +6,7 @@ import { IExerciseService } from '../../cores/exercise/services/exercise/exercis
 import { ExerciseServiceInjectionTokens } from '../../cores/exercise/services/exercise/exercise-injection-tokens';
 import { SearchResult } from '../../../common/models/search-result';
 import { ExerciseDto } from './dto/exercise.dto';
+import { ExerciseSearchResultDto } from './dto/exercise-search-result.dto';
 import { GetExercisesQueryDto } from './dto/get-exercises-query.dto';
 import { getExercisesQueryJoiSchema } from './dto/get-exercises-query.joi-schema';
 
@@ -29,6 +30,7 @@ export class ExerciseApiController {
   @ApiOperation({ summary: 'List exercises' })
   @ApiOkResponse({
     description: 'An offset-paginated page of exercises, each with its mapped muscle groups.',
+    type: ExerciseSearchResultDto,
   })
   public async searchAsync(
     @Query() query: GetExercisesQueryDto,

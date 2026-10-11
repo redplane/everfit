@@ -73,7 +73,7 @@ export class WorkoutHistoryQueryService implements IWorkoutHistoryQueryService {
     );
 
     const nextCursor =
-      page.hasMore && items.length > 0
+      page.hasMore
         ? encodeCursor({
             performedAt: page.items[page.items.length - 1].performedAt,
             id: page.items[page.items.length - 1].id,
@@ -132,6 +132,7 @@ export class WorkoutHistoryQueryService implements IWorkoutHistoryQueryService {
     return new Map(exercises.map((exercise) => [exercise.id, exercise.name]));
   }
 
+  /** Maps a workout entry to its history item DTO, converting each set's weight to the output unit. */
   private async __toItemAsync(
     entry: WorkoutEntryEntity,
     exerciseNameById: Map<string, string>,
@@ -151,12 +152,14 @@ export class WorkoutHistoryQueryService implements IWorkoutHistoryQueryService {
     );
   }
 
+  /** Maps a workout set to its DTO, converting the stored base weight to the requested output unit. */
   private async __toSetAsync(set: WorkoutSetEntity, unit: string): Promise<WorkoutHistorySetDto> {
     const weight = await this.__scaleUnitConversionService.fromBaseAsync(set.weightKg, unit);
 
     return new WorkoutHistorySetDto(set.setNumber, set.reps, weight, set.weight, set.unit);
   }
 
+  /** Builds an empty result (no items, no next cursor) that still echoes the served `limit`. */
   private __emptyResult(limit: number): SearchResult<WorkoutHistoryItemDto> {
     return { items: [], limit, nextCursor: null };
   }

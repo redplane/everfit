@@ -41,6 +41,9 @@ class StubExerciseService implements IExerciseService {
   public existsByIdAsync(): Promise<boolean> {
     return Promise.resolve(true);
   }
+  public getByIdsAsync(): Promise<ExerciseEntity[]> {
+    return Promise.resolve([]);
+  }
   public searchAsync(criteria: ExerciseSearchCriteria): Promise<SearchResult<ExerciseEntity>> {
     this.lastSearchCriteria = criteria;
     return Promise.resolve(this.searchResult);

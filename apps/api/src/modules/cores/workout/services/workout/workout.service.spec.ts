@@ -1,5 +1,6 @@
 import { newDb, IMemoryDb } from 'pg-mem';
 import { DataSource, QueryFailedError } from 'typeorm';
+import { v7 as uuidv7 } from 'uuid';
 import { WorkoutService } from './workout.service';
 import { WorkoutEntryEntity } from '../../entities/workout-entry.entity';
 import { WorkoutSetEntity } from '../../entities/workout-set.entity';
@@ -90,7 +91,12 @@ describe('WorkoutService', () => {
 
   beforeEach(async () => {
     dataSource = await createInMemoryDataSource();
-    service = new WorkoutService(dataSource, new FakeTimeContext(FIXED_NOW));
+    service = new WorkoutService(
+      dataSource,
+      dataSource.getRepository(WorkoutEntryEntity),
+      dataSource.getRepository(WorkoutSetEntity),
+      new FakeTimeContext(FIXED_NOW),
+    );
   });
 
   afterEach(async () => {
@@ -241,6 +247,178 @@ describe('WorkoutService', () => {
       jest.spyOn(dataSource, 'transaction').mockRejectedValueOnce(genericError as never);
 
       await expect(service.createManyAsync(singleEntryOptions())).rejects.toBe(genericError);
+    });
+  });
+  //#endregion
+
+  //#region searchHistoryAsync
+  describe('searchHistoryAsync', () => {
+    // Entry ids are fixed and time-ordered (UUID v7-shaped) so keyset ordering + tiebreaks are
+    // deterministic. Higher suffix = newer.
+    const ENTRY_1 = '018f6b0a-0000-7000-8000-000000000001';
+    const ENTRY_2 = '018f6b0a-0000-7000-8000-000000000002';
+    const ENTRY_3 = '018f6b0a-0000-7000-8000-000000000003';
+    const ENTRY_4 = '018f6b0a-0000-7000-8000-000000000004';
+    const DAY_1 = new Date('2026-10-01T10:00:00.000Z');
+    const DAY_2 = new Date('2026-10-02T10:00:00.000Z');
+    const DAY_3 = new Date('2026-10-03T10:00:00.000Z');
+
+    async function seedEntry(
+      id: string,
+      exerciseId: string,
+      performedAt: Date,
+      setCount = 1,
+    ): Promise<void> {
+      const entryRepository = dataSource.getRepository(WorkoutEntryEntity);
+      const setRepository = dataSource.getRepository(WorkoutSetEntity);
+      await entryRepository.save(
+        new WorkoutEntryEntity(id, USER_ID, exerciseId, performedAt, FIXED_NOW),
+      );
+      for (let n = 1; n <= setCount; n++) {
+        await setRepository.save(
+          new WorkoutSetEntity(
+            uuidv7(),
+            id,
+            USER_ID,
+            exerciseId,
+            performedAt,
+            n,
+            8,
+            100,
+            'kg',
+            100,
+            FIXED_NOW,
+          ),
+        );
+      }
+    }
+
+    it('returns entries in keyset order performed_at DESC, id DESC with their sets attached', async () => {
+      await seedEntry(ENTRY_1, EXERCISE_A, DAY_1, 2);
+      await seedEntry(ENTRY_2, EXERCISE_A, DAY_2);
+      await seedEntry(ENTRY_3, EXERCISE_B, DAY_3);
+
+      const page = await service.searchHistoryAsync({ userId: USER_ID, limit: 10 });
+
+      expect(page.items.map((e) => e.id)).toEqual([ENTRY_3, ENTRY_2, ENTRY_1]);
+      expect(page.hasMore).toBe(false);
+      // Sets attached, ordered set_number ASC.
+      const last = page.items[2];
+      expect(last.sets).toHaveLength(2);
+      expect(last.sets?.map((s) => s.setNumber)).toEqual([1, 2]);
+    });
+
+    it('first page returns exactly `limit` items and hasMore=true when more exist', async () => {
+      await seedEntry(ENTRY_1, EXERCISE_A, DAY_1);
+      await seedEntry(ENTRY_2, EXERCISE_A, DAY_2);
+      await seedEntry(ENTRY_3, EXERCISE_A, DAY_3);
+
+      const page = await service.searchHistoryAsync({ userId: USER_ID, limit: 2 });
+
+      expect(page.items.map((e) => e.id)).toEqual([ENTRY_3, ENTRY_2]);
+      expect(page.hasMore).toBe(true);
+    });
+
+    it('next page via cursor returns the following rows with no overlap', async () => {
+      await seedEntry(ENTRY_1, EXERCISE_A, DAY_1);
+      await seedEntry(ENTRY_2, EXERCISE_A, DAY_2);
+      await seedEntry(ENTRY_3, EXERCISE_A, DAY_3);
+
+      const nextPage = await service.searchHistoryAsync({
+        userId: USER_ID,
+        limit: 2,
+        // Cursor positioned at ENTRY_2 (DAY_2): the next page should start at ENTRY_1 (DAY_1).
+        cursor: { performedAt: DAY_2, id: ENTRY_2 },
+      });
+
+      expect(nextPage.items.map((e) => e.id)).toEqual([ENTRY_1]);
+      expect(nextPage.hasMore).toBe(false);
+    });
+
+    it('tiebreaks by id DESC when performed_at is equal (stable ordering)', async () => {
+      // Equal timestamps with the same exercise would collide on the denormalized set unique key,
+      // so seed these ordering-only entries without sets.
+      await seedEntry(ENTRY_1, EXERCISE_A, DAY_1, 0);
+      await seedEntry(ENTRY_2, EXERCISE_A, DAY_1, 0);
+      await seedEntry(ENTRY_3, EXERCISE_A, DAY_1, 0);
+
+      const page = await service.searchHistoryAsync({ userId: USER_ID, limit: 10 });
+      expect(page.items.map((e) => e.id)).toEqual([ENTRY_3, ENTRY_2, ENTRY_1]);
+
+      // A cursor at the equal-timestamp middle row yields only the strictly-smaller id.
+      const next = await service.searchHistoryAsync({
+        userId: USER_ID,
+        limit: 10,
+        cursor: { performedAt: DAY_1, id: ENTRY_2 },
+      });
+      expect(next.items.map((e) => e.id)).toEqual([ENTRY_1]);
+    });
+
+    it('boundary: exactly `limit` rows available → hasMore=false', async () => {
+      await seedEntry(ENTRY_1, EXERCISE_A, DAY_1);
+      await seedEntry(ENTRY_2, EXERCISE_A, DAY_2);
+
+      const page = await service.searchHistoryAsync({ userId: USER_ID, limit: 2 });
+
+      expect(page.items).toHaveLength(2);
+      expect(page.hasMore).toBe(false);
+    });
+
+    it('filters by exerciseIds (IN predicate)', async () => {
+      await seedEntry(ENTRY_1, EXERCISE_A, DAY_1);
+      await seedEntry(ENTRY_2, EXERCISE_B, DAY_2);
+      await seedEntry(ENTRY_3, EXERCISE_A, DAY_3);
+
+      const page = await service.searchHistoryAsync({
+        userId: USER_ID,
+        exerciseIds: [EXERCISE_A],
+        limit: 10,
+      });
+
+      expect(page.items.map((e) => e.id)).toEqual([ENTRY_3, ENTRY_1]);
+    });
+
+    it('filters by date range (from/to, inclusive UTC)', async () => {
+      await seedEntry(ENTRY_1, EXERCISE_A, DAY_1);
+      await seedEntry(ENTRY_2, EXERCISE_A, DAY_2);
+      await seedEntry(ENTRY_3, EXERCISE_A, DAY_3);
+
+      const onlyFrom = await service.searchHistoryAsync({
+        userId: USER_ID,
+        from: DAY_2,
+        limit: 10,
+      });
+      expect(onlyFrom.items.map((e) => e.id)).toEqual([ENTRY_3, ENTRY_2]);
+
+      const onlyTo = await service.searchHistoryAsync({ userId: USER_ID, to: DAY_2, limit: 10 });
+      expect(onlyTo.items.map((e) => e.id)).toEqual([ENTRY_2, ENTRY_1]);
+
+      const bothBounds = await service.searchHistoryAsync({
+        userId: USER_ID,
+        from: DAY_2,
+        to: DAY_2,
+        limit: 10,
+      });
+      expect(bothBounds.items.map((e) => e.id)).toEqual([ENTRY_2]);
+    });
+
+    it('scopes to the requesting user only', async () => {
+      const otherUser = '018f6b0a-0000-7000-8000-0000000000ff';
+      await seedEntry(ENTRY_1, EXERCISE_A, DAY_1);
+      await dataSource
+        .getRepository(WorkoutEntryEntity)
+        .save(new WorkoutEntryEntity(ENTRY_4, otherUser, EXERCISE_A, DAY_2, FIXED_NOW));
+
+      const page = await service.searchHistoryAsync({ userId: USER_ID, limit: 10 });
+
+      expect(page.items.map((e) => e.id)).toEqual([ENTRY_1]);
+    });
+
+    it('returns an empty page (not an error) for a known user with no rows', async () => {
+      const page = await service.searchHistoryAsync({ userId: USER_ID, limit: 10 });
+
+      expect(page.items).toEqual([]);
+      expect(page.hasMore).toBe(false);
     });
   });
   //#endregion

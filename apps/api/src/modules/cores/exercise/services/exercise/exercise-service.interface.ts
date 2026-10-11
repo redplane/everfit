@@ -24,6 +24,14 @@ export interface IExerciseService {
   existsByIdAsync(id: string): Promise<boolean>;
 
   /**
+   * Returns the exercises for the given ids in **one** query (no N+1), for resolving a history page's
+   * exercise names (F6). Does not throw for missing ids — only existing exercises are returned (so
+   * the caller can build an id→name map). Duplicate ids are de-duplicated; an empty input yields an
+   * empty array.
+   */
+  getByIdsAsync(ids: string[]): Promise<ExerciseEntity[]>;
+
+  /**
    * Returns an offset-paginated page of exercises with a stable ordering (`name ASC, id ASC`),
    * eager-loading each exercise's mapped muscle groups. Optional filters: partial `name`
    * (case-insensitive) and `muscleGroupId`. A page beyond the data yields empty `items` with the

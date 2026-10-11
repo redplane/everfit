@@ -32,7 +32,7 @@ function buildExerciseWithMuscleGroup(): ExerciseEntity {
  * the real `JoiService` drives the validation branches.
  */
 class StubExerciseService implements IExerciseService {
-  public searchResult: SearchResult<ExerciseEntity> = { items: [], limit: 20, offset: 0, total: 0 };
+  public searchResult: SearchResult<ExerciseEntity> = { items: [], total: 0 };
   public lastSearchCriteria?: ExerciseSearchCriteria;
 
   public getByIdAsync(): Promise<ExerciseEntity> {
@@ -75,16 +75,15 @@ describe('ExerciseApiController', () => {
 
   //#region searchAsync
   describe('searchAsync', () => {
-    it('returns a SearchResult mapping each entity to an ExerciseDto with nested muscle groups', async () => {
+    it('returns a slimmed { items, total } body (no limit/offset) mapping each entity to an ExerciseDto with nested muscle groups', async () => {
       exerciseService.searchResult = {
         items: [buildExerciseWithMuscleGroup()],
-        limit: 20,
-        offset: 0,
         total: 1,
       };
 
       const result = await controller.searchAsync({ limit: 20, offset: 0 } as GetExercisesQueryDto);
 
+      expect(Object.keys(result).sort()).toEqual(['items', 'total'].sort());
       expect(result.items).toEqual([
         {
           id: EXERCISE_ID,
@@ -93,14 +92,14 @@ describe('ExerciseApiController', () => {
         },
       ]);
       expect(result.total).toBe(1);
-      expect(result.limit).toBe(20);
-      expect(result.offset).toBe(0);
+      expect('limit' in result).toBe(false);
+      expect('offset' in result).toBe(false);
     });
 
     it('maps an exercise with no mapping to an empty muscleGroups array', async () => {
       const exercise = new ExerciseEntity(EXERCISE_ID, 'Plank', CREATED_TIME);
       exercise.exerciseMuscleGroups = [];
-      exerciseService.searchResult = { items: [exercise], limit: 20, offset: 0, total: 1 };
+      exerciseService.searchResult = { items: [exercise], total: 1 };
 
       const result = await controller.searchAsync({ limit: 20, offset: 0 } as GetExercisesQueryDto);
 
@@ -168,16 +167,19 @@ describe('ExerciseApiController', () => {
       ).rejects.toBeInstanceOf(ValidationException);
     });
 
-    it('returns an empty SearchResult (not an error) when the service yields no items', async () => {
-      exerciseService.searchResult = { items: [], limit: 20, offset: 40, total: 5 };
+    it('returns an empty { items: [], total } body (no limit/offset) when the service yields no items', async () => {
+      exerciseService.searchResult = { items: [], total: 5 };
 
       const result = await controller.searchAsync({
         limit: 20,
         offset: 40,
       } as GetExercisesQueryDto);
 
+      expect(Object.keys(result).sort()).toEqual(['items', 'total'].sort());
       expect(result.items).toEqual([]);
       expect(result.total).toBe(5);
+      expect('limit' in result).toBe(false);
+      expect('offset' in result).toBe(false);
     });
   });
   //#endregion

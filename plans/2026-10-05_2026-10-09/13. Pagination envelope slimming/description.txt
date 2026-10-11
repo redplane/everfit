@@ -1,0 +1,52 @@
+TASK 13 — Pagination envelope slimming (drop request-echo fields from responses)
+
+Feature IDs: F6
+Depends on: Task 2 (User master data), Task 3 (Exercise & muscle-group master data),
+  Task 6 (Get workout history), Task 11 (Cursor pagination response-shape compliance).
+  Must be built after Task 11, which it directly revises. Task 12 (demo walkthrough)
+  must be updated to match.
+
+User story
+  As a client of the paginated endpoints, I want the paginated responses to carry only the
+  metadata the server computed for me — not an echo of the paging inputs I already chose and
+  stored — so that the wire envelope is lean and every field it returns is something I could
+  not have known on my own.
+
+Rationale
+  The client already selected and holds the limit/offset it sent in the request, so echoing
+  those values back in the response is redundant. Server-computed metadata the client cannot
+  otherwise know is kept: total on the offset envelope, nextCursor on the cursor envelope.
+
+Acceptance criteria
+  - When a result page is returned from an offset endpoint, its body contains exactly the
+    keys items and total — no limit key and no offset key appear anywhere in the response
+    body. This applies to GET /api/users, GET /api/exercises, and GET /api/muscle-groups.
+  - When total is server-computed, it remains present and correct in the offset response.
+  - When a result page is returned from the cursor endpoint (GET /api/workout-history), its
+    body is unchanged: it keeps items, limit, and nextCursor.
+  - When a request is made, the inputs still accept limit, offset, and cursor exactly as
+    before — only the response echo is removed; nothing changes about what the client sends,
+    the limit bounds/defaults, ordering, keyset semantics, routes, status codes, or error
+    shapes.
+  - When the pagination guideline and the demo walkthrough are consulted, both describe the
+    slimmed offset envelope (items + total only) and leave the cursor envelope as-is; they
+    match the runtime behavior above.
+
+Edge cases
+  - An empty page from an offset endpoint still returns a body of exactly { items: [], total }
+    with no limit/offset keys — empty is not an error.
+  - The cursor endpoint's last-page (nextCursor null), empty, and filtered-to-empty paths are
+    unaffected by this change and keep returning items, limit, nextCursor.
+
+Out of scope / assumptions
+  - The cursor envelope ICursorSearchResult<T> is intentionally UNCHANGED — it keeps items,
+    limit, and nextCursor. The human decided explicitly to retain limit on the cursor envelope.
+  - The name ICursorSearchResult is intentionally KEPT as-is — no rename this task (human
+    confirmed).
+  - No database, entity, migration, route, query-param, status-code, or error-shape changes —
+    this is a pure response-shape change on the three offset endpoints.
+  - No auth; userId continues to be passed as a parameter.
+
+Notes
+  - Builds on the two-envelope pagination split established in Task 11; Task 11 remains the
+    historical record and should carry a pointer to this follow-up rather than being rewritten.

@@ -168,3 +168,12 @@ export enum UserStatuses {
 - An interface that describes a service contract is named `I<ServiceName>` only when a
   separate token is needed; otherwise the concrete `class` is the injection token
   (idiomatic NestJS). See `./frameworks/nestjs/api.md` → Services.
+- **`I`-prefix convention.** The `I` prefix is reserved for **injectable/DI contracts** —
+  service interfaces (`IUserService`, `IExerciseService`, `IWorkoutHistoryQueryService`),
+  the time context (`ITimeContext`), and base-entity/DI contracts resolved via a token. **Plain
+  data-model / shape interfaces** under `common/models/` take **no** prefix: `SearchResult`,
+  `CursorPage`, `CursorPager`, `OffsetPager`, `ValidationIssue`.
+  - **Exception:** `ICursorSearchResult<T>` keeps the `I` prefix by explicit team decision, even
+    though it is a data-model interface (not a service contract). This is the one documented,
+    deliberate exception to the rule above — do not rename it, and do not use it as precedent for
+    `I`-prefixing other data shapes.

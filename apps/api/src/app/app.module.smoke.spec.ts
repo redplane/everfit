@@ -220,9 +220,9 @@ describe('AppModule (bootstrap smoke)', () => {
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(Array.isArray(body.items)).toBe(true);
-    expect(body.limit).toBe(20);
-    expect(body.offset).toBe(0);
     expect(body.total).toBe(0);
+    expect('limit' in body).toBe(false);
+    expect('offset' in body).toBe(false);
   });
 
   it('serves the get-user-by-id route at /api/users/:id (404 for an unknown id)', async () => {
@@ -245,9 +245,9 @@ describe('AppModule (bootstrap smoke)', () => {
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(Array.isArray(body.items)).toBe(true);
-    expect(body.limit).toBe(20);
-    expect(body.offset).toBe(0);
     expect(body.total).toBe(0);
+    expect('limit' in body).toBe(false);
+    expect('offset' in body).toBe(false);
   });
 
   it('serves the muscle-group list at /api/muscle-groups', async () => {
@@ -256,9 +256,9 @@ describe('AppModule (bootstrap smoke)', () => {
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(Array.isArray(body.items)).toBe(true);
-    expect(body.limit).toBe(20);
-    expect(body.offset).toBe(0);
     expect(body.total).toBe(0);
+    expect('limit' in body).toBe(false);
+    expect('offset' in body).toBe(false);
   });
 
   it('does NOT mount the double-prefixed paths /api/api/exercises or /api/api/muscle-groups', async () => {

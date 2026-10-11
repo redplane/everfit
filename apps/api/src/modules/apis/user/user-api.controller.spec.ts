@@ -22,8 +22,6 @@ function buildUser(id: string, name: string): UserEntity {
 class StubUserService implements IUserService {
   public searchResult: SearchResult<UserEntity> = {
     items: [],
-    limit: 20,
-    offset: 0,
     total: 0,
   };
   public lastSearchCriteria?: { limit: number; offset: number };
@@ -94,22 +92,21 @@ describe('UserApiController', () => {
 
   //#region searchAsync
   describe('searchAsync', () => {
-    it('returns a SearchResult mapping each entity to a UserDto', async () => {
+    it('returns a slimmed { items, total } body (no limit/offset) mapping each entity to a UserDto', async () => {
       userService.searchResult = {
         items: [buildUser(EXISTING_ID, 'Alice')],
-        limit: 20,
-        offset: 0,
         total: 1,
       };
 
       const result = await controller.searchAsync({ limit: 20, offset: 0 } as GetUsersQueryDto);
 
+      expect(Object.keys(result).sort()).toEqual(['items', 'total'].sort());
       expect(result.items).toEqual([
         { id: EXISTING_ID, name: 'Alice', createdTime: CREATED_TIME },
       ]);
       expect(result.total).toBe(1);
-      expect(result.limit).toBe(20);
-      expect(result.offset).toBe(0);
+      expect('limit' in result).toBe(false);
+      expect('offset' in result).toBe(false);
     });
 
     it('applies the default pager (limit 20, offset 0) when both are omitted', async () => {
@@ -136,29 +133,16 @@ describe('UserApiController', () => {
       ).rejects.toBeInstanceOf(ValidationException);
     });
 
-    it('returns an empty SearchResult (not an error) when the service yields no items', async () => {
-      userService.searchResult = { items: [], limit: 20, offset: 40, total: 5 };
+    it('returns an empty { items: [], total } body (no limit/offset) when the service yields no items', async () => {
+      userService.searchResult = { items: [], total: 5 };
 
       const result = await controller.searchAsync({ limit: 20, offset: 40 } as GetUsersQueryDto);
 
+      expect(Object.keys(result).sort()).toEqual(['items', 'total'].sort());
       expect(result.items).toEqual([]);
       expect(result.total).toBe(5);
-    });
-
-    // F6 — offset endpoints keep their contract: the response MUST carry both `total` and `offset`
-    // (the half of the pagination rule that cursor endpoints omit). Guards against accidental drift.
-    it('includes both the total and offset keys in the offset response body', async () => {
-      userService.searchResult = {
-        items: [buildUser(EXISTING_ID, 'Alice')],
-        limit: 20,
-        offset: 0,
-        total: 1,
-      };
-
-      const result = await controller.searchAsync({ limit: 20, offset: 0 } as GetUsersQueryDto);
-
-      expect(Object.prototype.hasOwnProperty.call(result, 'total')).toBe(true);
-      expect(Object.prototype.hasOwnProperty.call(result, 'offset')).toBe(true);
+      expect('limit' in result).toBe(false);
+      expect('offset' in result).toBe(false);
     });
   });
   //#endregion

@@ -42,8 +42,6 @@ export class UserApiController {
 
     return {
       items: result.items.map(UserDto.fromEntity),
-      limit: result.limit,
-      offset: result.offset,
       total: result.total,
     };
   }

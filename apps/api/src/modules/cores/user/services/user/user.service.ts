@@ -46,8 +46,6 @@ export class UserService implements IUserService {
 
     return {
       items,
-      limit: criteria.limit,
-      offset: criteria.offset,
       total,
     };
   }

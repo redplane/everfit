@@ -19,7 +19,9 @@ There are two pagination styles:
 
 - An offset/page-paginated response returns the page of `items` **and** a `total` count of all
   matching rows, so the client can render page numbers / "page X of Y".
-- The response also carries the `limit` and the `offset` it was served for.
+- The response does **not** echo back the `limit`/`offset` it was served for: the client already
+  chose and holds those request inputs, so returning them is redundant. Only server-computed
+  metadata the client could not otherwise know (`total`) is included.
 
 ## 2. Cursor pagination returns **only** the items (plus a next-cursor)
 
@@ -41,7 +43,7 @@ There are two pagination styles:
 - The two styles use **two distinct wire envelopes** under `src/common/models/`, so each type carries
   exactly its meaningful metadata and a cursor response **cannot** structurally carry a `total`:
   - **Offset** lists return `SearchResult<T>` (`src/common/models/search-result.ts`):
-    `{ items, limit, offset?, total? }`.
+    `{ items, total? }` — the request-echo `limit`/`offset` are deliberately not returned.
   - **Cursor** lists return `ICursorSearchResult<T>` (`src/common/models/cursor-search-result.ts`):
     `{ items, limit, nextCursor }` — no `total`, no `offset`.
   See the REST-shape rules in `../typescript/frameworks/nestjs/api.md` §3.1.

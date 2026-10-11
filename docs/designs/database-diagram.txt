@@ -7,6 +7,7 @@
 // Shipped so far:
 //   - Task 2 (F2): users
 //   - Task 3 (F3): exercises, muscle_groups, exercise_muscle_groups (M:N mapping)
+//   - Task 5 (F5): workout_entries, workout_sets (row-per-set logging)
 
 Table users {
   id uuid [pk, note: 'UUID v7, pk_users; supplied by the application']
@@ -50,6 +51,55 @@ Table exercise_muscle_groups {
   Note: 'Configurable M:N exercise<->muscle-group mapping (F3). The pair is unique (a duplicate mapping is rejected); the (muscle_group_id, exercise_id) index backs the history muscle-group filter (F6).'
 }
 
+Table workout_entries {
+  id uuid [pk, note: 'UUID v7, pk_workout_entries; supplied by the application']
+  user_id uuid [not null, note: 'fk_workout_entries_user_id -> users.id']
+  exercise_id uuid [not null, note: 'fk_workout_entries_exercise_id -> exercises.id']
+  performed_at timestamptz [not null, note: 'the workout instant, stored UTC']
+  created_time timestamptz [not null]
+
+  Indexes {
+    (user_id, performed_at, id) [name: 'ix_workout_entries_user_id_performed_at_id', note: 'performed_at DESC, id DESC — history keyset (F6)']
+    (user_id, exercise_id, performed_at) [name: 'ix_workout_entries_user_id_exercise_id_performed_at', note: 'performed_at DESC']
+  }
+
+  Note: 'Parent grouping row per logged (user, exercise, instant) (F5). Immutable/append-only — no updated_time. The paginated unit of history (F6).'
+}
+
+Table workout_sets {
+  id uuid [pk, note: 'UUID v7, pk_workout_sets; supplied by the application']
+  workout_entry_id uuid [not null, note: 'fk_workout_sets_workout_entry_id -> workout_entries.id']
+  user_id uuid [not null, note: 'denormalized from parent; NO FK (transaction-guaranteed copy)']
+  exercise_id uuid [not null, note: 'denormalized from parent; NO FK (transaction-guaranteed copy)']
+  performed_at timestamptz [not null, note: 'denormalized from parent (UTC)']
+  set_number smallint [not null, note: '1-based ordinal within the entry — the repeat discriminator']
+  reps integer [not null, note: 'positive']
+  weight "numeric(7,3)" [not null, note: 'original value as entered']
+  unit varchar(8) [not null, note: "original wire unit code ('kg' / 'lb')"]
+  weight_kg "numeric(9,4)" [not null, note: 'normalized kg (storage canonical)']
+  created_time timestamptz [not null]
+
+  Indexes {
+    (user_id, exercise_id, performed_at, set_number) [unique, name: 'uq_workout_sets_user_id_exercise_id_performed_at_set_number', note: 'duplicate rejection (Q8) -> 409']
+    (user_id, exercise_id, weight_kg) [name: 'ix_workout_sets_user_id_exercise_id_weight_kg', note: 'weight_kg DESC — max weight PR (F7)']
+    (user_id, exercise_id, performed_at) [name: 'ix_workout_sets_user_id_exercise_id_performed_at', note: 'performed_at DESC — period-bounded PR (F8)']
+    // Expression indexes (migration raw SQL; DBML cannot express computed expressions):
+    //   ix_workout_sets_user_id_exercise_id_volume: (user_id, exercise_id, ((reps * weight_kg)) DESC)  -- max volume PR (F7)
+    //   ix_workout_sets_user_id_exercise_id_epley:  (user_id, exercise_id, ((weight_kg * (1 + reps / 30.0))) DESC)  -- best Epley 1RM (F7)
+  }
+
+  Note: 'Row-per-set fact row (F5, Q1). Carries the parent FK plus denormalized user_id/exercise_id/performed_at (no FK on the copies) so PR aggregation and the race-safe unique constraint need no join. Stores both what was entered (weight + unit) and the normalized weight_kg.'
+}
+
 // Exercises <-> muscle groups is logical many-to-many, resolved through exercise_muscle_groups.
 Ref: exercise_muscle_groups.exercise_id > exercises.id
 Ref: exercise_muscle_groups.muscle_group_id > muscle_groups.id
+
+// Workout parent FKs.
+Ref: workout_entries.user_id > users.id
+Ref: workout_entries.exercise_id > exercises.id
+Ref: workout_sets.workout_entry_id > workout_entries.id
+// Denormalized columns shown as relationships for readability; they carry NO DB-level FK constraint
+// (kept correct by the single write transaction, §8).
+Ref: workout_sets.user_id > users.id
+Ref: workout_sets.exercise_id > exercises.id

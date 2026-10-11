@@ -42,8 +42,6 @@ export class MuscleGroupApiController {
 
     return {
       items: result.items.map(MuscleGroupDto.fromEntity),
-      limit: result.limit,
-      offset: result.offset,
       total: result.total,
     };
   }

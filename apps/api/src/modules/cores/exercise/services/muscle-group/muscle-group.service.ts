@@ -48,8 +48,6 @@ export class MuscleGroupService implements IMuscleGroupService {
 
     return {
       items,
-      limit: criteria.limit,
-      offset: criteria.offset,
       total,
     };
   }

@@ -85,8 +85,6 @@ export class ExerciseService implements IExerciseService {
 
     return {
       items,
-      limit: criteria.limit,
-      offset: criteria.offset,
       total,
     };
   }

@@ -117,9 +117,10 @@ describe('MuscleGroupService', () => {
 
       const result = await service.searchAsync({ limit: 20, offset: 0 });
 
+      expect(Object.keys(result).sort()).toEqual(['items', 'total'].sort());
       expect(result.total).toBe(3);
-      expect(result.limit).toBe(20);
-      expect(result.offset).toBe(0);
+      expect('limit' in result).toBe(false);
+      expect('offset' in result).toBe(false);
       expect(result.items.map((group) => group.name)).toEqual(['Back', 'Chest', 'Legs']);
     });
 
@@ -143,7 +144,6 @@ describe('MuscleGroupService', () => {
       const result = await service.searchAsync({ limit: 2, offset: 2 });
 
       expect(result.items.map((group) => group.name)).toEqual(['Legs']);
-      expect(result.offset).toBe(2);
       expect(result.total).toBe(3);
     });
 

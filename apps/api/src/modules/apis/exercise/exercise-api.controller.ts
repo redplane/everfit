@@ -46,8 +46,6 @@ export class ExerciseApiController {
 
     return {
       items: result.items.map(ExerciseDto.fromEntity),
-      limit: result.limit,
-      offset: result.offset,
       total: result.total,
     };
   }

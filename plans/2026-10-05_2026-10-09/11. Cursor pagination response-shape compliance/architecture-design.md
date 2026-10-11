@@ -248,10 +248,17 @@ confirmation first.
 
 ## Contract
 
+> **Follow-up (Task 13 — Pagination envelope slimming):** Task 13 slims the offset `SearchResult<T>`
+> further to **`{ items: T[]; total?: number }`** (drops the request-echo `limit`/`offset` from the
+> offset response body). The cursor `ICursorSearchResult<T>` below is **unchanged** by Task 13. This
+> document remains the historical record of the two-envelope split; see
+> `plans/2026-10-05_2026-10-09/13. Pagination envelope slimming/` for the current offset shape.
+
 - `ICursorSearchResult<T>` (new, `apps/api/src/common/models/cursor-search-result.ts`):
   `{ items: T[]; limit: number; nextCursor: string | null }`. No `total`, no `offset`.
 - `SearchResult<T>` (changed, offset-only):
   `{ items: T[]; limit: number; offset?: number; total?: number }`. No `nextCursor`.
+  (Task 13 later slims this to `{ items: T[]; total?: number }`.)
 - `IWorkoutHistoryQueryService.searchAsync(query): Promise<ICursorSearchResult<WorkoutHistoryItemDto>>`.
 - `WorkoutHistorySearchResultDto implements ICursorSearchResult<WorkoutHistoryItemDto>` —
   documentation projection: `{ items: WorkoutHistoryItemDto[]; limit: number; nextCursor: string | null }`.

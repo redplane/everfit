@@ -17,8 +17,6 @@ function buildMuscleGroup(id: string, name: string): MuscleGroupEntity {
 class StubMuscleGroupService implements IMuscleGroupService {
   public searchResult: SearchResult<MuscleGroupEntity> = {
     items: [],
-    limit: 20,
-    offset: 0,
     total: 0,
   };
   public lastSearchCriteria?: MuscleGroupSearchCriteria;
@@ -51,11 +49,9 @@ describe('MuscleGroupApiController', () => {
 
   //#region searchAsync
   describe('searchAsync', () => {
-    it('returns a SearchResult mapping each entity to a MuscleGroupDto', async () => {
+    it('returns a slimmed { items, total } body (no limit/offset) mapping each entity to a MuscleGroupDto', async () => {
       muscleGroupService.searchResult = {
         items: [buildMuscleGroup(MUSCLE_GROUP_ID, 'Chest')],
-        limit: 20,
-        offset: 0,
         total: 1,
       };
 
@@ -64,10 +60,11 @@ describe('MuscleGroupApiController', () => {
         offset: 0,
       } as GetMuscleGroupsQueryDto);
 
+      expect(Object.keys(result).sort()).toEqual(['items', 'total'].sort());
       expect(result.items).toEqual([{ id: MUSCLE_GROUP_ID, name: 'Chest' }]);
       expect(result.total).toBe(1);
-      expect(result.limit).toBe(20);
-      expect(result.offset).toBe(0);
+      expect('limit' in result).toBe(false);
+      expect('offset' in result).toBe(false);
     });
 
     it('applies the default pager (limit 20, offset 0) when both are omitted', async () => {
@@ -94,16 +91,19 @@ describe('MuscleGroupApiController', () => {
       ).rejects.toBeInstanceOf(ValidationException);
     });
 
-    it('returns an empty SearchResult (not an error) when the service yields no items', async () => {
-      muscleGroupService.searchResult = { items: [], limit: 20, offset: 40, total: 5 };
+    it('returns an empty { items: [], total } body (no limit/offset) when the service yields no items', async () => {
+      muscleGroupService.searchResult = { items: [], total: 5 };
 
       const result = await controller.searchAsync({
         limit: 20,
         offset: 40,
       } as GetMuscleGroupsQueryDto);
 
+      expect(Object.keys(result).sort()).toEqual(['items', 'total'].sort());
       expect(result.items).toEqual([]);
       expect(result.total).toBe(5);
+      expect('limit' in result).toBe(false);
+      expect('offset' in result).toBe(false);
     });
   });
   //#endregion
